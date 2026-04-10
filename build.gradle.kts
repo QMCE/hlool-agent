@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "rj.cocacode"
-version = "1.0.0"
+version = "0.1.0"
 
 dependencies {
     // Kotlin
@@ -52,7 +52,13 @@ kotlin {
 }
 
 application {
-    mainClass.set("rj.cocacode.MainKt")
+    mainClass = "rj.cocacode.MainKt"
+}
+
+tasks.named<Jar>("jar") {
+    manifest {
+        attributes["Main-Class"] = "rj.cocacode.MainKt"
+    }
 }
 
 tasks.named<Test>("test") {

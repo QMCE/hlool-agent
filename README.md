@@ -1,14 +1,8 @@
-
-
 # CocaCode
 
 CocaCode - AI Coding Assistant | AI 编程助手
 
-[简体中文](#简体中文) | [English](#English)
-
----
-
-## 简体中文
+[English](README.en.md) | [正體中文](README.hant.md)
 
 ### 项目简介
 
@@ -17,7 +11,7 @@ CocaCode 是一个强大的 AI 编程助手，专为开发者设计，集成了�
 ### 主要特性
 
 - **多 Agent 系统**：支持自定义 AI Agent，可加载多个 Agent 定义，灵活切换
-- **丰富的工具集**：内置文件操作、搜索、代码编辑等工具
+- **工具集**：内置文件操作、搜索、代码编辑等工具
   - `Bash` - 执行 Shell 命令
   - `Read` - 读取文件内容
   - `Write` - 写入文件内容
@@ -31,25 +25,30 @@ CocaCode 是一个强大的 AI 编程助手，专为开发者设计，集成了�
 - **记忆系统**：自动保存项目记忆和参考文档
 - **上下文管理**：智能上下文管理，支持大规模代码库
 - **调试器**：内置调试功能
-- **差异引擎**：强大的代码diff对比能力
+- **差异引擎**：强大的代码 diff 对比能力
 - **LSP 支持**：Language Server Protocol 集成
 - **MCP 客户端**：Model Context Protocol 客户端支持
 - **远程会话**：支持远程协作和会话管理
-- **Keybindings**：可自定义键盘快捷键
+- **键盘绑定**：可自定义键盘快捷键
 - **Vim 模式**：完整的 Vim 编辑支持
 
 ### 技术栈
 
-- **语言**: Kotlin
-- **构建工具**: Gradle
-- **并发**: Kotlin Coroutines + Flow
+- **语言**：Kotlin
+- **构建工具**：Gradle
+- **并发**：Kotlin Coroutines + Flow
+- **HTTP 客户端**：Ktor
+- **终端**：JLine
+- **日志**：SLF4J + Logback
+- **CLI**：Clikt
+- **序列化**：Kotlinx Serialization
 
 ### 快速开始
 
 #### 环境要求
 
-- JDK 17+
-- Kotlin 1.9+
+- JDK 25+
+- Kotlin 2.3+
 
 #### 构建项目
 
@@ -122,17 +121,18 @@ src/main/kotlin/rj/cocacode/
 ├── test/                   # 测试框架
 ├── tools/                  # 工具注册
 ├── types/                  # 类型定义
-├── ui/                     # 终端UI
+├── ui/                     # 终端 UI
 ├── utils/                  # 工具函数
 ├── validate/               # 代码验证
 ├── version/                # 版本信息
 ├── vim/                    # Vim 支持
-└── voice/                 # 语音模式
+├── voice/                 # 语音模式
+└── workspace/              # 工作空间
 ```
 
 ### 配置
 
-配置文件通常位于 `~/.cocacode/config.json`:
+配置文件通常位于 `~/.cocacode/config.json`：
 
 ```json
 {
@@ -146,146 +146,4 @@ src/main/kotlin/rj/cocacode/
 
 ### 许可证
 
-本项目基于 SPDX 许可证授权。
-
----
-
-## English
-
-### Project Introduction
-
-CocaCode is a powerful AI coding assistant designed for developers, integrating multiple AI models, tools, and extensibility features to help developers complete coding tasks more efficiently.
-
-### Key Features
-
-- **Multi-Agent System**: Support for custom AI Agents with flexible loading and switching
-- **Rich Toolset**: Built-in file operations, search, code editing tools
-  - `Bash` - Execute shell commands
-  - `Read` - Read file contents
-  - `Write` - Write file contents
-  - `Edit` - Edit file contents
-  - `Glob` - Find files by pattern
-  - `Grep` - Search file contents
-  - `WebSearch` - Search the web
-- **REPL Mode**: Interactive programming environment
-- **Extension System**: Plugin and extension loading support
-- **Skills System**: Built-in skill loader and executor
-- **Memory System**: Project memory and reference documentation
-- **Context Management**: Intelligent context management for large codebases
-- **Debugger**: Built-in debugging functionality
-- **Diff Engine**: Powerful code diff comparison
-- **LSP Support**: Language Server Protocol integration
-- **MCP Client**: Model Context Protocol client support
-- **Remote Sessions**: Remote collaboration and session management
-- **Keybindings**: Customizable keyboard shortcuts
-- **Vim Mode**: Full Vim editing support
-
-### Tech Stack
-
-- **Language**: Kotlin
-- **Build Tool**: Gradle
-- **Concurrency**: Kotlin Coroutines + Flow
-
-### Quick Start
-
-#### Requirements
-
-- JDK 17+
-- Kotlin 1.9+
-
-#### Build
-
-```bash
-./gradlew build
-```
-
-#### Run
-
-```bash
-# Version
-./gradlew run --args="-v"
-
-# Interactive mode
-./gradlew run --args="-i"
-
-# With prompt
-./gradlew run --args="-p 'your question'"
-```
-
-### Project Structure
-
-```
-src/main/kotlin/rj/cocacode/
-├── Main.kt                  # CLI entry point
-├── agents/                 # Agent system
-├── bootstrap/              # Bootstrap state
-├── bridge/                 # Remote bridge
-├── buddy/                  # Companion system
-├── cache/                  # Cache management
-├── cli/                    # CLI utilities
-├── commands/               # Command registry
-├── concurrency/            # Concurrency utils
-├── config/                 # Configuration
-├── constants/              # Constants
-├── context/                # Context management
-├── debug/                  # Debugger
-├── diff/                   # Diff engine
-├── engine/                 # Query engine
-├── entrypoints/            # SDK entry points
-├── ext/                    # Extension manager
-├── format/                  # Code formatting
-├── history/                # History management
-├── hooks/                  # Hook system
-├── ink/                    # Text processing
-├── keybindings/            # Keyboard bindings
-├── mcp/                    # MCP protocol
-├── memdir/                 # Memory directory
-├── metrics/                # Metrics collection
-├── model/                  # Model selector
-├── native-ts/              # Native modules
-├── network/                # Network client
-├── outputStyles/          # Output styles
-├── parser/                 # Code parser
-├── plugins/                # Plugin system
-├── query/                  # Query config
-├── realtime/               # Real-time system
-├── remote/                 # Remote sessions
-├── repl/                   # REPL loop
-├── search/                 # Search engine
-├── security/               # Security utils
-├── services/              # Service components
-├── skills/                 # Skills system
-├── state/                  # State management
-├── storage/                # Storage system
-├── stream/                 # Stream processing
-├── tasks/                  # Task management
-├── telemetry/              # Telemetry
-├── template/               # Template engine
-├── test/                   # Test framework
-├── tools/                  # Tool registry
-├── types/                  # Type definitions
-├── ui/                     # Terminal UI
-├── utils/                  # Utilities
-├── validate/               # Code validation
-├── version/                # Version info
-├── vim/                    # Vim support
-└── voice/                 # Voice mode
-```
-
-### Configuration
-
-Config file typically at `~/.cocacode/config.json`:
-
-```json
-{
-  "version": "1.0.0",
-  "apiUrl": "https://api.anthropic.com",
-  "logLevel": "INFO",
-  "maxMemory": 1073741824,
-  "enableTelemetry": true
-}
-```
-
-### License
-
-This project is licensed under SPDX license.
+本项目基于 BSD 3-Clause 许可证授权，详见 [LICENSE](LICENSE) 文件。

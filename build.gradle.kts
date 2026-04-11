@@ -55,6 +55,13 @@ application {
     mainClass = "rj.cocacode.MainKt"
 }
 
+tasks.register<JavaExec>("runInteractive") {
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("rj.cocacode.MainKt")
+    args("-i")
+}
+
+
 tasks.named<Jar>("jar") {
     manifest {
         attributes["Main-Class"] = "rj.cocacode.MainKt"

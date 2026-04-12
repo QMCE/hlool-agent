@@ -1,6 +1,7 @@
 package rj.cocacode.utils
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -52,7 +53,7 @@ object ConfigManager {
     fun saveGlobalConfig(config: Config) {
         val configFile = getConfigFile()
         configFile.parentFile?.mkdirs()
-        configFile.writeText(json.encodeToString<Config>(config))
+        configFile.writeText(json.encodeToString(config))
         globalConfig = config
     }
     

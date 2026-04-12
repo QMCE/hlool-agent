@@ -11,6 +11,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
+import rj.cocacode.config.ApiConfig
 import rj.cocacode.utils.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,8 +24,8 @@ class ClaudeApiClient {
         }
     }
     
-    private val apiKey = System.getenv("ANTHROPIC_API_KEY") ?: ""
-    private val baseUrl = "https://api.anthropic.com/v1"
+    private val apiKey get() = ApiConfig.apiKey
+    private val baseUrl get() = "${ApiConfig.baseUrl}/v1"
     
     suspend fun sendMessage(request: ChatRequest): Result<ChatResponse> {
         return try {
@@ -71,38 +72,34 @@ class ClaudeApiClient {
     }
     
     private fun parseChatResponse(json: String): ChatResponse {
-        val map = Json.decodeFromString<Map<String, Any>>(json)
+        val map = Json.decodeFromString<Map<String, JsonElement>>(json)
         return ChatResponse(
-            id = map["id"] as? String ?: "",
-            type = map["type"] as? String ?: "message",
+            id = map["id"]?.jsonPrimitive?.content ?: "",
+            type = map["type"]?.jsonPrimitive?.content ?: "message",
             role = "assistant",
             content = parseContent(map["content"]),
-            model = map["model"] as? String ?: "",
-            stopReason = map["stop_reason"] as? String,
+            model = map["model"]?.jsonPrimitive?.content ?: "",
+            stopReason = map["stop_reason"]?.jsonPrimitive?.content,
             usage = parseUsage(map["usage"])
         )
     }
     
-    private fun parseContent(content: Any?): List<ContentBlock> {
-        if (content is List<*>) {
-            return content.mapNotNull { block ->
-                when (block) {
-                    is Map<*, *> -> {
-                        when (block["type"]) {
-                            "text" -> ContentBlock.TextBlock(block["text"] as? String ?: "")
-                            "tool_use" -> {
-                                val inputMap = block["input"] as? Map<*, *>
-                                val typedInput: Map<String, Any> = inputMap?.entries?.associate { 
-                                    (it.key as String) to (it.value as Any) 
-                                } ?: emptyMap()
-                                ContentBlock.ToolUseBlock(
-                                    id = block["id"] as? String ?: "",
-                                    name = block["name"] as? String ?: "",
-                                    input = typedInput
-                                )
-                            }
-                            else -> null
-                        }
+    private fun parseContent(content: JsonElement?): List<ContentBlock> {
+        if (content is JsonArray) {
+            return content.mapNotNull { element ->
+                val block = element.jsonObject
+                when (block["type"]?.jsonPrimitive?.content) {
+                    "text" -> ContentBlock.TextBlock(block["text"]?.jsonPrimitive?.content ?: "")
+                    "tool_use" -> {
+                        val inputJson = block["input"]?.jsonObject
+                        val typedInput: Map<String, Any> = inputJson?.entries?.associate {
+                            it.key to it.value.toKotlinObject()
+                        } ?: emptyMap()
+                        ContentBlock.ToolUseBlock(
+                            id = block["id"]?.jsonPrimitive?.content ?: "",
+                            name = block["name"]?.jsonPrimitive?.content ?: "",
+                            input = typedInput
+                        )
                     }
                     else -> null
                 }
@@ -111,14 +108,21 @@ class ClaudeApiClient {
         return emptyList()
     }
     
-    private fun parseUsage(usage: Any?): Usage {
-        if (usage is Map<*, *>) {
-            return Usage(
-                inputTokens = (usage["input_tokens"] as? Number)?.toInt() ?: 0,
-                outputTokens = (usage["output_tokens"] as? Number)?.toInt() ?: 0
-            )
+    private fun parseUsage(usage: JsonElement?): Usage {
+        val obj = usage?.jsonObject
+        return Usage(
+            inputTokens = obj?.get("input_tokens")?.jsonPrimitive?.int ?: 0,
+            outputTokens = obj?.get("output_tokens")?.jsonPrimitive?.int ?: 0
+        )
+    }
+    
+    private fun JsonElement.toKotlinObject(): Any = when (this) {
+        is JsonPrimitive -> {
+            if (isString) content else jsonPrimitive.content
         }
-        return Usage()
+        is JsonArray -> jsonArray.map { it.toKotlinObject() }
+        is JsonObject -> jsonObject.entries.associate { it.key to it.value.toKotlinObject() }
+        JsonNull -> Any()
     }
     
     private fun ChatRequest.toJson(): String {

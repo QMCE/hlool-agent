@@ -14,18 +14,18 @@ fun getTokenUsage(message: TokenMessage): Usage? {
     if (m.type != "assistant" || m.message?.usage == null) return null
     val first = content?.firstOrNull()
     val isText = first?.type == "text" && first.text != null && SYNTHETIC_MESSAGES.contains(first.text)
-    val model = m.message?.model
-    if (isText == true) return null
+    val model = m.message.model
+    if (isText) return null
     if (model == SYNTHETIC_MODEL) return null
-    return m.message?.usage
+    return m.message.usage
 }
 
 private fun getAssistantTokenMessageId(message: TokenMessage): String? {
     val m = message
     val hasId = m.message?.id != null
     val model = m.message?.model
-    if (m.type == "assistant" && hasId == true && model != SYNTHETIC_MODEL) {
-        return m.message?.id
+    if (m.type == "assistant" && hasId && model != SYNTHETIC_MODEL) {
+        return m.message.id
     }
     return null
 }

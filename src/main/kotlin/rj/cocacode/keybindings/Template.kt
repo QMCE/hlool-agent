@@ -17,8 +17,8 @@ fun generateKeybindingsTemplate(): String {
     val bindings = filterReservedShortcuts(DEFAULT_BINDINGS)
     
     val config = mapOf(
-        "\$schema" to "https://www.schemastore.org/claude-code-keybindings.json",
-        "\$docs" to "https://code.claude.com/docs/en/keybindings",
+        "\$schema" to "https://www.schemastore.org/cocacode-keybindings.json",
+        "\$docs" to "https://cocacode.ai/docs/keybindings",
         "bindings" to bindings
     )
     

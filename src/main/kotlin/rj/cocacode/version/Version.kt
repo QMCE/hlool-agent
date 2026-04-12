@@ -52,7 +52,7 @@ object SemanticVersion {
         "kotlin" to "1.9.22"
     )
     
-    fun getBuildInfo(): Map<String, Any> = buildMetadata
+    val buildInfo: Map<String, Any> = buildMetadata
     
     fun generateVersionCode(major: Int, minor: Int, patch: Int): Int {
         return major * 10000 + minor * 100 + patch

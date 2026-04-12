@@ -8,6 +8,7 @@ import rj.cocacode.tools.Tool
 import rj.cocacode.tools.ToolResult
 import rj.cocacode.utils.generateUuid
 import rj.cocacode.services.api.ApiClient
+import rj.cocacode.config.ApiConfig
 
 class QueryEngine {
     private var isProcessing = false
@@ -51,13 +52,11 @@ class QueryEngine {
     }
     
     private suspend fun callModel(prompt: String): ModelResponse {
-        val state = AppStateManager.getState()
-        
         val systemPrompt = buildSystemPrompt()
         val messages = messageHistory.map { mapToApiFormat(it) }
         
-        val result = ApiClient.post("/v1/messages", mapOf(
-            "model" to state.currentModel,
+        val result = ApiClient.post("/messages", mapOf(
+            "model" to ApiConfig.model,
             "max_tokens" to 4096,
             "system" to systemPrompt,
             "messages" to messages

@@ -101,6 +101,7 @@ object Repl {
     }
     
     fun start() {
+        UI.init()
         registerTools()
         CommandRegistry.init()
         

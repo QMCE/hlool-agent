@@ -46,7 +46,7 @@ object Bridge {
 
 object BridgeConfig {
     data class Config(
-        val serverUrl: String = "https://claude.ai",
+        val serverUrl: String = "https://cocacode.ai",
         val protocol: String = "websocket",
         val reconnect: Boolean = true,
         val reconnectInterval: Long = 5000,

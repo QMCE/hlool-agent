@@ -18,10 +18,12 @@ fun buildQueryConfig(): QueryConfig {
   return QueryConfig(
     sessionId = getSessionId(),
     gates = Gates(
-      streamingToolExecution = checkStatsigFeatureGate_CACHED_MAY_BE_STALE("tengu_streaming_tool_execution2"),
-      emitToolUseSummaries = isEnvTruthy(getenv("CLAUDE_CODE_EMIT_TOOL_USE_SUMMARIES")),
+      streamingToolExecution = checkStatsigFeatureGateCached("tengu_streaming_tool_execution2"),
+      emitToolUseSummaries = isEnvTruthy(getenv("COCACODE_EMIT_TOOL_USE_SUMMARIES")
+          ?: getenv("CLAUDE_CODE_EMIT_TOOL_USE_SUMMARIES")),
       isAnt = getenv("USER_TYPE") == "ant",
-      fastModeEnabled = !isEnvTruthy(getenv("CLAUDE_CODE_DISABLE_FAST_MODE")),
+      fastModeEnabled = !isEnvTruthy(getenv("COCACODE_DISABLE_FAST_MODE")
+          ?: getenv("CLAUDE_CODE_DISABLE_FAST_MODE")),
     ),
   )
 }
@@ -30,7 +32,7 @@ private fun getSessionId(): String {
   return "sess_" + System.currentTimeMillis()
 }
 
-private fun checkStatsigFeatureGate_CACHED_MAY_BE_STALE(feature: String): Boolean {
+private fun checkStatsigFeatureGateCached(feature: String): Boolean {
   return false
 }
 

@@ -16,7 +16,10 @@ private var lastCustomBindingsLogDate: String? = null
 fun isKeybindingCustomizationEnabled(): Boolean = false
 
 fun getKeybindingsPath(): String {
-    return System.getProperty("user.home") + "/.claude/keybindings.json"
+    val configDir = System.getenv("COCACODE_CONFIG_DIR")
+        ?: System.getenv("CLAUDE_CONFIG_DIR")
+        ?: (System.getProperty("user.home") + "/.cocacode")
+    return "$configDir/keybindings.json"
 }
 
 private fun getDefaultParsedBindings(): List<ParsedBinding> {

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "rj.cocacode"
-version = "0.1.0"
+version = "0.1.1"
 
 dependencies {
     // Coroutines
@@ -61,3 +61,4 @@ tasks.named<Jar>("jar") {
 tasks.named<Test>("test") {
     useJUnit()
 }
+

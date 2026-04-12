@@ -22,7 +22,7 @@ object SecurityUtils {
         return hash.joinToString("") { "%02x".format(it) }
     }
     
-    fun encryptAES_GCM(plaintext: String, key: String): String {
+    fun encryptAesGcm(plaintext: String, key: String): String {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         val secretKey = SecretKeySpec(key.toByteArray().copyOf(32), "AES")
         val iv = ByteArray(12)
@@ -35,7 +35,7 @@ object SecurityUtils {
         return Base64.getEncoder().encodeToString(combined)
     }
     
-    fun decryptAES_GCM(encrypted: String, key: String): String {
+    fun decryptAesGcm(encrypted: String, key: String): String {
         val combined = Base64.getDecoder().decode(encrypted)
         val iv = combined.copyOfRange(0, 12)
         val ciphertext = combined.copyOfRange(12, combined.size)

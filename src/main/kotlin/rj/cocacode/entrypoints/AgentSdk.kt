@@ -14,14 +14,12 @@ data class SDKMessage(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-@Serializable
 data class SDKControlRequest(
     val type: String,
     val requestId: String? = null,
     val data: Map<String, Any>? = null
 )
 
-@Serializable
 data class SDKControlResponse(
     val type: String,
     val requestId: String? = null,
@@ -42,7 +40,6 @@ enum class SessionStatus {
     ACTIVE, PAUSED, COMPLETED, ERROR
 }
 
-@Serializable
 data class ForkSessionOptions(
     val sessionId: String? = null,
     val messages: List<Map<String, Any>>? = null,
@@ -78,7 +75,6 @@ data class TokenUsage(
     val totalTokens: Int = 0
 )
 
-@Serializable
 data class ToolCall(
     val name: String,
     val input: Map<String, Any> = emptyMap(),

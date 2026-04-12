@@ -4,6 +4,7 @@ import rj.cocacode.types.Conversation
 import rj.cocacode.types.Message
 import rj.cocacode.utils.Config
 import rj.cocacode.utils.generateUuid
+import rj.cocacode.config.ApiConfig
 
 data class AppState(
     val sessionId: String = generateUuid(),
@@ -11,7 +12,7 @@ data class AppState(
     val config: Config = Config(),
     val isConnected: Boolean = false,
     val isThinking: Boolean = false,
-    val currentModel: String = "claude-sonnet-4-20250514",
+    val currentModel: String = ApiConfig.model,
     val permissionMode: PermissionMode = PermissionMode.DEFAULT,
     val mcpServers: Map<String, McpServerState> = emptyMap(),
     val tools: List<ToolState> = emptyList(),

@@ -226,7 +226,7 @@ fun addToTotalDurationState(duration: Long, durationWithoutRetries: Long) {
     BootstrapStateHolder.STATE.totalAPIDurationWithoutRetries += durationWithoutRetries
 }
 
-fun resetTotalDurationStateAndCost_FOR_TESTS_ONLY() {
+fun resetTotalDurationStateAndCostForTestsOnly() {
     BootstrapStateHolder.STATE.totalAPIDuration = 0
     BootstrapStateHolder.STATE.totalAPIDurationWithoutRetries = 0
     BootstrapStateHolder.STATE.totalCostUSD = 0.0

@@ -86,7 +86,6 @@ suspend fun scanMemoryFiles(memoryDir: String, signal: AbortSignal): List<Memory
             )
         }
         return headerResults
-            .filter { it != null }
             .sortedByDescending { it.mtimeMs }
             .take(MAX_MEMORY_FILES)
     } catch (e: Exception) {

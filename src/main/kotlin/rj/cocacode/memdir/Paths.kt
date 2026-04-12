@@ -13,7 +13,8 @@ object MemoryPathUtils {
     private const val AUTO_MEM_ENTRYPOINT_NAME = "MEMORY.md"
 
     fun isAutoMemoryEnabled(): Boolean {
-        val envVal = System.getenv("CLAUDE_CODE_DISABLE_AUTO_MEMORY")
+        val envVal = System.getenv("COCACODE_DISABLE_AUTO_MEMORY")
+            ?: System.getenv("CLAUDE_CODE_DISABLE_AUTO_MEMORY")
         if (envVal != null) {
             val v = envVal.lowercase()
             if (v == "1" || v == "true" || v == "yes" || v == "on") return false
@@ -22,14 +23,15 @@ object MemoryPathUtils {
     }
 
     fun getMemoryBaseDir(): String {
-        val remote = System.getenv("CLAUDE_CODE_REMOTE_MEMORY_DIR")
+        val remote = System.getenv("COCACODE_REMOTE_MEMORY_DIR")
+            ?: System.getenv("CLAUDE_CODE_REMOTE_MEMORY_DIR")
         if (!remote.isNullOrEmpty()) return remote
-        return getClaudeConfigHomeDir()
+        return getCocaCodeConfigHomeDir()
     }
 
-    fun getClaudeConfigHomeDir(): String {
+    fun getCocaCodeConfigHomeDir(): String {
         val home = System.getProperty("user.home") ?: ""
-        return File(home, ".claude").absolutePath
+        return File(home, ".cocacode").absolutePath
     }
 
     private val _autoMemPath: String by lazy {
@@ -54,7 +56,9 @@ object MemoryPathUtils {
     }
 
     fun getAutoMemPathOverride(): String? {
-        val v = System.getenv("CLAUDE_COWORK_MEMORY_PATH_OVERRIDE") ?: return null
+        val v = System.getenv("COCACODE_MEMORY_PATH_OVERRIDE")
+            ?: System.getenv("CLAUDE_COWORK_MEMORY_PATH_OVERRIDE")
+            ?: return null
         val p = Paths.get(v)
         return if (p.isAbsolute) v else null
     }

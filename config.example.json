@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "model": "claude-sonnet-4-20250514",
+  "apiUrl": "https://api.anthropic.com",
+  "apiKey": "your-api-key-here",
+  "theme": "auto",
+  "fastMode": false,
+  "allowedTools": ["Bash", "Read", "Write", "Edit", "Glob", "Grep"]
+}

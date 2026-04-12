@@ -10,6 +10,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import rj.cocacode.config.ApiConfig
 import rj.cocacode.utils.AuthManager
 
 object HttpClient {
@@ -40,13 +41,13 @@ object HttpClient {
 }
 
 object ApiClient {
-    private const val BASE_URL = "https://api.anthropic.com"
     private const val VERSION = "2023-06-01"
+    private val baseUrl get() = ApiConfig.baseUrl
     
     suspend fun post(endpoint: String, body: Map<String, Any>): Result<String> {
         return try {
-            val response = HttpClient.client.post("$BASE_URL$endpoint") {
-                header("x-api-key", getApiKey())
+            val response = HttpClient.client.post("$baseUrl$endpoint") {
+                header("x-api-key", ApiConfig.apiKey)
                 header("anthropic-version", VERSION)
                 setBody(body)
             }
@@ -54,10 +55,6 @@ object ApiClient {
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
-    
-    private fun getApiKey(): String {
-        return System.getenv("ANTHROPIC_API_KEY") ?: ""
     }
 }
 

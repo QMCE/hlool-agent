@@ -39,7 +39,7 @@ class RemoteSessionManager(
   private val callbacks: RemoteSessionCallbacks,
 ) {
   private var websocket: SessionsWebSocket? = null
-private val pendingPermissionRequests: MutableMap<String, Map<String, Any?>> = HashMap()
+private val pendingPermissionRequests: MutableMap<String, Map<String, Any?>> = mutableMapOf()
 
   
 

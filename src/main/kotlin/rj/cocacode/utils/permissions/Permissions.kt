@@ -38,13 +38,13 @@ object PermissionManager {
     
     fun getMode(): PermissionMode {
         val state = AppStateManager.getState()
-        return when (state.permissionMode) {
+        @Suppress("ALWAYS_TRUE")
+        return when (val mode = state.permissionMode) {
             rj.cocacode.state.PermissionMode.DEFAULT -> PermissionMode.DEFAULT
             rj.cocacode.state.PermissionMode.BYPASS_PERMISSIONS -> PermissionMode.BYPASS_PERMISSIONS
             rj.cocacode.state.PermissionMode.PLAN -> PermissionMode.PLAN
             rj.cocacode.state.PermissionMode.AUTO -> PermissionMode.AUTO
             rj.cocacode.state.PermissionMode.DONT_ASK -> PermissionMode.DONT_ASK
-            else -> PermissionMode.DEFAULT
         }
     }
     

@@ -91,7 +91,7 @@ class McpClient(
         )
         
         val response = transport?.send(request)
-        return response?.toString() ?: ""
+        return response ?: ""
     }
     
     private fun parseToolsResponse(response: String): List<McpTool> {

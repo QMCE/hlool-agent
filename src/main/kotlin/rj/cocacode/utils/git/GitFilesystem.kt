@@ -151,6 +151,7 @@ suspend fun readRawSymref(
 
 class GitFileWatcher {
   private val cache = mutableMapOf<String, Pair<Boolean, Any?>>()
+  @Suppress("UNCHECKED_CAST")
   suspend fun <T> get(key: String, compute: suspend () -> T): T {
     val existing = cache[key]?.second as? T
     if (existing != null) return existing

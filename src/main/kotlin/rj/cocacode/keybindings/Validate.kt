@@ -77,6 +77,7 @@ private fun validateKeystroke(keystroke: String): KeybindingWarning? {
     return null
 }
 
+@Suppress("UNCHECKED_CAST")
 private fun validateBlock(block: Map<String, Any?>, blockIndex: Int): List<KeybindingWarning> {
     val warnings = mutableListOf<KeybindingWarning>()
     

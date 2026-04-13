@@ -44,6 +44,7 @@ private val pendingPermissionRequests: MutableMap<String, Map<String, Any?>> = m
   
 
   fun connect(): Unit {
+    @Suppress("UNCHECKED_CAST")
     val wsCallbacks = SessionsWebSocketCallbacks(
       onMessage = { message -> handleMessage(message as SDKMessage) },
       onConnected = { callbacks.onConnected?.invoke() },
@@ -81,6 +82,7 @@ private val pendingPermissionRequests: MutableMap<String, Map<String, Any?>> = m
     }
   }
 
+  @Suppress("UNCHECKED_CAST")
   private fun handleControlRequest(message: SDKMessage) {
     val requestId = message["request_id"] as? String ?: return
     val inner = message["request"] as? Map<String, Any?> ?: emptyMap()

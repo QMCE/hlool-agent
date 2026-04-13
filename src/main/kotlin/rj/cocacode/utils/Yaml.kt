@@ -10,8 +10,7 @@ suspend fun parseYaml(input: String): Any? = withContext(Dispatchers.IO) {
         val ctor = cls.getConstructor()
         val yaml = ctor.newInstance()
         val loadMethod = cls.getMethod("load", Any::class.java)
-        @Suppress("UNCHECKED_CAST")
-        loadMethod.invoke(yaml, input) as? Any
+        loadMethod.invoke(yaml, input)
     } catch (t: Throwable) {
         null
     }

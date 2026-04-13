@@ -8,9 +8,9 @@ object Companion {
         return {
             a = a and 0xFFFFFFFFL
             a = (a + 0x6d2b79f5L) and 0xFFFFFFFFL
-            val t = ((a xor (a shr 15)) * (1 or a.toInt())).toLong() and 0xFFFFFFFFL
-            val t2 = ((t + ((t xor (t shr 7)) * (61 or t.toInt()))).toLong() xor t) and 0xFFFFFFFFL
-            ((t2 xor (t2 shr 14)).toLong() and 0xFFFFFFFFL).toDouble() / 4294967296.0
+val t = ((a xor (a shr 15)) * (1 or a.toInt())) and 0xFFFFFFFFL
+            val t2 = ((t + ((t xor (t shr 7)) * (61 or t.toInt()))) xor t) and 0xFFFFFFFFL
+            ((t2 xor (t2 shr 14)) and 0xFFFFFFFFL).toDouble() / 4294967296.0
         }
     }
 

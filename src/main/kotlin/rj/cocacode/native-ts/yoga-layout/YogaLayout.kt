@@ -117,12 +117,12 @@ class Node(private val config: Config = Config()) {
     
     fun getComputedRight(): Double {
         val p = parentNodeRef
-        return p?.let { it.layout.width - layout.left.toDouble() - layout.width.toDouble() } ?: 0.0
+        return p?.let { it.layout.width - layout.left - layout.width } ?: 0.0
     }
     
     fun getComputedBottom(): Double {
         val p = parentNodeRef
-        return p?.let { it.layout.height - layout.top.toDouble() - layout.height.toDouble() } ?: 0.0
+        return p?.let { it.layout.height - layout.top - layout.height } ?: 0.0
     }
     
     fun getComputedLayout(): Map<String, Double> = mapOf(

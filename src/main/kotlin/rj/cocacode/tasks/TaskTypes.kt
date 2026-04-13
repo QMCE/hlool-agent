@@ -60,23 +60,18 @@ data class DreamTaskState(
 
 sealed class BackgroundTaskState : TaskState()
 
+@Suppress("ALWAYS_TRUE")
 fun isBackgroundTask(task: TaskState): Boolean {
     if (task.status != "running" && task.status != "pending") {
         return false
     }
     return when (task) {
-        is TaskState -> {
-            val isBackgrounded = when (task) {
-                is LocalShellTaskState -> task.isBackgrounded
-                is LocalAgentTaskState -> task.isBackgrounded
-                is RemoteAgentTaskState -> task.isBackgrounded
-                is InProcessTeammateTaskState -> task.isBackgrounded
-                is LocalWorkflowTaskState -> task.isBackgrounded
-                is MonitorMcpTaskState -> task.isBackgrounded
-                else -> true
-            }
-            isBackgrounded != false
-        }
+        is LocalShellTaskState -> task.isBackgrounded
+        is LocalAgentTaskState -> task.isBackgrounded
+        is RemoteAgentTaskState -> task.isBackgrounded
+        is InProcessTeammateTaskState -> task.isBackgrounded
+        is LocalWorkflowTaskState -> task.isBackgrounded
+        is MonitorMcpTaskState -> task.isBackgrounded
         else -> true
     }
 }

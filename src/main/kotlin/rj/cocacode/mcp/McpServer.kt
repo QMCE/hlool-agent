@@ -47,6 +47,7 @@ object McpProtocol {
         val message: String
     )
     
+    @Suppress("UNCHECKED_CAST")
     fun parseRequest(json: String): Request? {
         return try {
             val map = com.google.gson.Gson().fromJson(json, Map::class.java)

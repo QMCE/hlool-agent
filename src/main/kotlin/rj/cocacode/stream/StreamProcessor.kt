@@ -108,6 +108,7 @@ class NDJSONParser {
             }
     }
     
+    @Suppress("UNCHECKED_CAST")
     private fun parseJsonToMap(json: String): Map<String, Any> {
         return com.google.gson.Gson().fromJson(json, Map::class.java) as Map<String, Any>
     }

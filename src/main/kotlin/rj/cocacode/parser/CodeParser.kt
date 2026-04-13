@@ -90,7 +90,7 @@ object KotlinParser {
             if (braceDepth == 0 && (inFunction || inClass)) {
                 if (inFunction && currentFunction != null) {
                     functions.add(CodeParser.FunctionNode(
-                        name = currentFunction!!,
+                        name = currentFunction,
                         params = extractParams(trimmed),
                         body = emptyList()
                     ))
@@ -100,7 +100,7 @@ object KotlinParser {
                 
                 if (inClass && currentClass != null) {
                     classes.add(CodeParser.ClassNode(
-                        name = currentClass!!,
+                        name = currentClass,
                         members = classBody.toList()
                     ))
                     classBody.clear()
@@ -159,7 +159,7 @@ object JsonParser {
                 '{' -> { depth++; current.append(char) }
                 '}' -> { depth--; current.append(char) }
                 ':' -> if (depth == 0 && parsingKey) {
-                    key = parseString(current.toString().trim()).toString()
+                    key = parseString(current.toString().trim())
                     current = StringBuilder()
                     parsingKey = false
                 } else { current.append(char) }

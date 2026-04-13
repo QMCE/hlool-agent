@@ -173,6 +173,7 @@ class LSPServerInstance(private val config: LspServerConfig) {
         }
     }
     
+    @Suppress("UNCHECKED_CAST")
     private fun handleMessage(line: String) {
         try {
             val message = com.google.gson.Gson().fromJson(line, Map::class.java)

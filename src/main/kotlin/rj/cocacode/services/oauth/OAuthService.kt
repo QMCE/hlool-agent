@@ -73,7 +73,7 @@ object OAuthService {
             
             val response = HttpClient.client.post(TOKEN_URL) {
                 contentType(ContentType.Application.FormUrlEncoded)
-                setBody(params.entries.joinToString("&") { "${it.key}=${URLEncoder.encode(it.value.toString(), UTF_8.name())}" })
+                setBody(params.entries.joinToString("&") { "${it.key}=${URLEncoder.encode(it.value, UTF_8.name())}" })
             }
             
             val body: String = response.bodyAsText()

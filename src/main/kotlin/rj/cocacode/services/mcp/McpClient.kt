@@ -185,28 +185,111 @@ class StdioTransport(
     private val env: Map<String, String>?
 ) : McpTransport {
     private var process: Process? = null
-    
+    private var input: java.io.OutputStream? = null
+    private var output: java.io.BufferedReader? = null
+    private var error: java.io.BufferedReader? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val stderrBuffer = StringBuilder()
+    private var closed = false
+    private val timeoutMs = 30000L
+
     override suspend fun connect() {
-        val builder = ProcessBuilder(command, *args.toTypedArray())
-        env?.forEach { builder.environment().put(it.key, it.value) }
-        process = builder.start()
+        if (process != null) return
+        try {
+            val builder = ProcessBuilder(listOf(command) + args)
+            builder.redirectErrorStream(false)
+            env?.forEach { (k, v) -> builder.environment()[k] = v }
+            process = builder.start()
+            input = process!!.outputStream
+            output = java.io.BufferedReader(java.io.InputStreamReader(process!!.inputStream, Charsets.UTF_8))
+            error = java.io.BufferedReader(java.io.InputStreamReader(process!!.errorStream, Charsets.UTF_8))
+            startStderrReader()
+            delay(100)
+            LogManager.logInfo("StdioTransport: Process started - $command")
+        } catch (e: Exception) {
+            LogManager.logError("StdioTransport: Failed to start - ${e.message}")
+            closeStreams()
+            throw e
+        }
     }
-    
+
+    private fun startStderrReader() {
+        scope.launch {
+            try {
+                error?.let { r ->
+                    var line: String?
+                    while (!closed && r.readLine().also { line = it } != null) {
+                        line?.takeIf { it.isNotEmpty() }?.let {
+                            stderrBuffer.appendLine(it)
+                            if (stderrBuffer.length < 65536) LogManager.logDebug("StdioTransport stderr: $it")
+                        }
+                    }
+                }
+            } catch (e: Exception) { }
+        }
+    }
+
     override suspend fun send(request: McpRequest): String? {
-        return null
+        if (closed || process == null || input == null) throw IllegalStateException("Not connected")
+        return try withContext(Dispatchers.IO) {
+            val json = com.google.gson.Gson().toJson(request)
+            input?.write((json + "\n").toByteArray(Charsets.UTF_8))
+            input?.flush()
+            LogManager.logDebug("StdioTransport: Sent - $json")
+            val response = output?.readLine()
+            if (response != null) {
+                LogManager.logDebug("StdioTransport: Received - $response")
+                response
+            } else {
+                LogManager.logError("StdioTransport: Timeout")
+                null
+            }
+        } catch (e: Exception) {
+            LogManager.logError("StdioTransport: Send failed - ${e.message}")
+            null
+        }
     }
-    
+
     override suspend fun disconnect() {
+        if (closed) return
+        closed = true
+        try {
+            input?.close()
+            process?.let { p ->
+                val ok = p.waitFor(2000, java.util.concurrent.TimeUnit.MILLISECONDS)
+                if (!ok) p.destroyForcibly()
+            }
+        } catch (e: Exception) {
+            LogManager.logError("StdioTransport: Disconnect error - ${e.message}")
+            process?.destroyForcibly()
+        } finally {
+            closeStreams()
+        }
+    }
+
+    private fun closeStreams() {
+        try { input?.close() } catch (e: Exception) { }
+        try { output?.close() } catch (e: Exception) { }
+        try { error?.close() } catch (e: Exception) { }
         process?.destroy()
         process = null
+        input = null
+        output = null
+        error = null
+        scope.cancel()
     }
+
+    fun getStderr(): String = stderrBuffer.toString()
+    fun isRunning(): Boolean = process?.isAlive == true
 }
 
 class SseTransport(
     private val url: String,
     private val headers: Map<String, String>?
 ) : McpTransport {
-    override suspend fun connect() {}
+    override suspend fun connect() {
+        LogManager.logInfo("SseTransport: CONNECT TO $url")
+    }
     override suspend fun send(request: McpRequest): String? = null
     override suspend fun disconnect() {}
 }
@@ -215,7 +298,9 @@ class HttpTransport(
     private val url: String,
     private val headers: Map<String, String>?
 ) : McpTransport {
-    override suspend fun connect() {}
+    override suspend fun connect() {
+        LogManager.logInfo("HttpTransport: CONNECT TO $url")
+    }
     override suspend fun send(request: McpRequest): String? = null
     override suspend fun disconnect() {}
 }

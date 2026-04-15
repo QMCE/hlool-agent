@@ -17,7 +17,8 @@ data class ToolDefinition(
 data class ToolResult(
     val type: String = "text",
     val text: String = "",
-    val isError: Boolean = false
+    val isError: Boolean = false,
+    val metadata: Map<String, Any> = emptyMap()
 )
 
 abstract class Tool(val name: String, val description: String) {
@@ -47,28 +48,22 @@ object ToolRegistry {
 }
 
 class BashTool : Tool("Bash", "Execute shell commands") {
+    private val bashTool = BashToolImpl()
+    
     override suspend fun execute(input: Map<String, Any>): ToolResult {
-        val command = input["command"] as? String ?: return ToolResult(text = "Error: command required", isError = true)
-        val timeout = input["timeout"] as? Long ?: 60000
-        
-        val result = rj.cocacode.utils.Shell.exec(command, options = rj.cocacode.utils.Shell.ExecOptions(timeout = timeout, shell = true))
-        return ToolResult(
-            text = result.stdout + if (result.stderr.isNotBlank()) "\n${result.stderr}" else "",
-            isError = result.exitCode != 0
-        )
+        return bashTool.execute(input)
     }
 }
 
 class ReadFileTool : Tool("Read", "Read file contents") {
+    private val readTool = ReadToolImpl()
+    
     override suspend fun execute(input: Map<String, Any>): ToolResult {
-        val path = input["file_path"] as? String ?: return ToolResult(text = "Error: file_path required", isError = true)
-        
-        return try {
-            val content = java.io.File(path).readText()
-            ToolResult(text = content)
-        } catch (e: Exception) {
-            ToolResult(text = "Error reading file: ${e.message}", isError = true)
-        }
+        return readTool.readFile(
+            filePath = input["file_path"] as? String ?: return ToolResult(text = "Error: file_path required", isError = true),
+            offset = (input["offset"] as? Number)?.toInt(),
+            limit = (input["limit"] as? Number)?.toInt()
+        )
     }
 }
 
@@ -87,68 +82,154 @@ class WriteFileTool : Tool("Write", "Write content to file") {
 }
 
 class EditFileTool : Tool("Edit", "Edit file content") {
+    private val editTool = EditToolImpl()
+    
     override suspend fun execute(input: Map<String, Any>): ToolResult {
-        val path = input["file_path"] as? String ?: return ToolResult(text = "Error: file_path required", isError = true)
-        val oldString = input["old_string"] as? String ?: return ToolResult(text = "Error: old_string required", isError = true)
-        val newString = input["new_string"] as? String ?: return ToolResult(text = "Error: new_string required", isError = true)
+        return editTool.execute(input)
+    }
+}
+
+class GlobTool : Tool(GlobToolConstants.TOOL_NAME, GlobToolConstants.TOOL_DESCRIPTION) {
+    companion object {
+        private const val DEFAULT_MAX_RESULTS = GlobToolConstants.DEFAULT_MAX_RESULTS
+    }
+    
+    override suspend fun execute(input: Map<String, Any>): ToolResult {
+        val pattern = input["pattern"] as? String 
+            ?: return ToolResult(text = "Error: pattern required", isError = true)
+        
+        // Use provided path or default to current working directory
+        val searchPath = input["path"] as? String ?: System.getProperty("user.dir") ?: "."
+        
+        val startTime = System.currentTimeMillis()
         
         return try {
-            val file = java.io.File(path)
-            val content = file.readText()
-            if (!content.contains(oldString)) {
-                return ToolResult(text = "Error: old_string not found in file", isError = true)
+            val searchDir = java.io.File(searchPath)
+            
+            // Validate that path exists and is a directory
+            if (!searchDir.exists()) {
+                return ToolResult(
+                    text = "Directory does not exist: $searchPath",
+                    isError = true,
+                    metadata = mapOf("errorCode" to 1)
+                )
             }
-            val newContent = content.replace(oldString, newString)
-            file.writeText(newContent)
-            ToolResult(text = "File edited: $path")
-        } catch (e: Exception) {
-            ToolResult(text = "Error editing file: ${e.message}", isError = true)
-        }
-    }
-}
-
-class GlobTool : Tool("Glob", "Find files by pattern") {
-    override suspend fun execute(input: Map<String, Any>): ToolResult {
-        val path = input["path"] as? String ?: "."
-        val pattern = input["pattern"] as? String ?: "*"
-        
-        return try {
-            val files = java.io.File(path).walkTopDown()
-                .filter { it.name.matches(Regex(pattern.replace("*", ".*"))) }
-                .map { it.absolutePath }
-                .take(100)
-                .toList()
             
-            ToolResult(text = files.joinToString("\n"))
-        } catch (e: Exception) {
-            ToolResult(text = "Error: ${e.message}", isError = true)
-        }
-    }
-}
-
-class GrepTool : Tool("Grep", "Search file contents") {
-    override suspend fun execute(input: Map<String, Any>): ToolResult {
-        val pattern = input["pattern"] as? String ?: return ToolResult(text = "Error: pattern required", isError = true)
-        val path = input["path"] as? String ?: "."
-        
-        return try {
-            val results = java.io.File(path).walkTopDown()
-                .filter { it.isFile && !rj.cocacode.constants.Files.hasBinaryExtension(it.name) }
-                .mapNotNull { file ->
-                    try {
-                        val content = file.readText()
-                        if (content.contains(Regex(pattern))) {
-                            "${file.absolutePath}: found"
-                        } else null
-                    } catch (e: Exception) { null }
+            if (!searchDir.isDirectory) {
+                return ToolResult(
+                    text = "Path is not a directory: $searchPath",
+                    isError = true,
+                    metadata = mapOf("errorCode" to 2)
+                )
+            }
+            
+            // Convert glob pattern to regex
+            val regexPattern = globToRegex(pattern)
+            val regex = Regex(regexPattern, RegexOption.IGNORE_CASE)
+            
+            // Find matching files
+            val files = mutableListOf<String>()
+            var truncated = false
+            
+            searchDir.walkTopDown()
+                .filter { it.isFile }
+                .forEach { file ->
+                    if (files.size >= DEFAULT_MAX_RESULTS) {
+                        truncated = true
+                        return@forEach
+                    }
+                    if (file.name.matches(regex) || file.absolutePath.matches(regex)) {
+                        files.add(file.absolutePath)
+                    }
                 }
-                .take(50)
-                .toList()
             
-            ToolResult(text = results.joinToString("\n"))
+            // Relativize paths to save tokens
+            val relativizedPaths = files.map { makeRelativePath(it, searchPath) }
+            
+            val durationMs = System.currentTimeMillis() - startTime
+            
+            val output = GlobOutput(
+                durationMs = durationMs,
+                numFiles = relativizedPaths.size,
+                filenames = relativizedPaths,
+                truncated = truncated
+            )
+            
+            val content = if (relativizedPaths.isEmpty()) {
+                "No files found"
+            } else {
+                buildString {
+                    append(relativizedPaths.joinToString("\n"))
+                    if (truncated) {
+                        append("\n(Results are truncated. Consider using a more specific path or pattern.)")
+                    }
+                }
+            }
+            
+            ToolResult(
+                text = content,
+                metadata = mapOf(
+                    "durationMs" to durationMs,
+                    "numFiles" to relativizedPaths.size,
+                    "truncated" to truncated
+                )
+            )
         } catch (e: Exception) {
-            ToolResult(text = "Error: ${e.message}", isError = true)
+            ToolResult(
+                text = "Error: ${e.message}",
+                isError = true
+            )
         }
+    }
+    
+    /**
+     * Convert glob pattern to regex
+     */
+    private fun globToRegex(pattern: String): String {
+        val sb = StringBuilder("^")
+        
+        for (char in pattern) {
+            when (char) {
+                '*' -> sb.append(".*")
+                '?' -> sb.append(".")
+                '.' -> sb.append("\\.")
+                '[' -> sb.append("[")
+                ']' -> sb.append("]")
+                '\\' -> sb.append("\\\\")
+                else -> {
+                    if (char.isLetterOrDigit() || char == '_' || char == '-' || char == '/' || char == ' ') {
+                        sb.append(char)
+                    } else {
+                        sb.append("\\").append(char)
+                    }
+                }
+            }
+        }
+        
+        sb.append("$")
+        return sb.toString()
+    }
+    
+    /**
+     * Make path relative to base directory
+     */
+    private fun makeRelativePath(absolutePath: String, basePath: String): String {
+        val baseDir = java.io.File(basePath)
+        val absoluteFile = java.io.File(absolutePath)
+        
+        return try {
+            baseDir.toURI().relativize(absoluteFile.toURI()).path
+        } catch (e: Exception) {
+            absolutePath
+        }
+    }
+}
+
+class GrepTool : Tool("Grep", "Search file contents using ripgrep") {
+    private val grepTool = GrepToolImpl()
+    
+    override suspend fun execute(input: Map<String, Any>): ToolResult {
+        return grepTool.execute(input)
     }
 }
 

@@ -3,6 +3,8 @@ package rj.cocacode.utils
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import rj.cocacode.config.SettingsConfig
+import rj.cocacode.config.SettingsSource
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
@@ -63,4 +65,14 @@ object ConfigManager {
             if (configFile.exists()) loadConfig(configFile) ?: Config() else Config()
         }
     }
+
+    fun getEffectiveSettings(projectDir: String) = SettingsConfig.getEffectiveSettings(projectDir)
+
+    fun reloadSettings() = SettingsConfig.resetCache()
+
+    fun hasSettingsFile(source: SettingsSource, projectDir: String): Boolean =
+        SettingsConfig.hasSettingsFile(source, projectDir)
+
+    fun getEnabledSourceCount(projectDir: String): Int =
+        SettingsConfig.getEnabledSourceCount(projectDir)
 }

@@ -27,6 +27,14 @@ object Hooks {
         lifecycleHooks.clear()
         eventHooks.clear()
     }
+    
+    fun registerFromConfig(config: HooksConfig) {
+        for ((event, matchers) in config) {
+            for (matcher in matchers) {
+                HookRegistry.registerHook(event, matcher)
+            }
+        }
+    }
 }
 
 object LifecyclePhases {

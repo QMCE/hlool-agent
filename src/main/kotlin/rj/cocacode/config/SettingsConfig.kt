@@ -109,7 +109,7 @@ object SettingsConfig {
             val existing = loadSettingsForSource(source, projectDir) ?: JsonObject(emptyMap())
             val updated = SettingsMerger.merge(existing, updates)
 
-            file.writeText(json.encodeToString(updated))
+            file.writeText(updated.toString())
             resetCache()
 
             Result.success(Unit)

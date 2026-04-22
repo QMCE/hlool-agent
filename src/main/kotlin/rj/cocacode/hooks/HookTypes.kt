@@ -72,7 +72,7 @@ data class ToolHookInput(
     val agent_id: String? = null,
     val agent_type: String? = null,
     val tool_name: String,
-    val tool_input: Map<String, @Serializable(with = AnySerializer) Any?>
+    val tool_input: Map<String, Any?>
 )
 
 /**
@@ -172,7 +172,7 @@ sealed class HookExecutionResult {
         val output: String = "",
         val additionalContext: String? = null,
         val permissionBehavior: PermissionBehavior? = null,
-        val updatedInput: Map<String, @Serializable(with = AnySerializer) Any?>? = null
+        val updatedInput: Map<String, Any?>? = null
     ) : HookExecutionResult()
     
     data class BlockingError(
@@ -283,8 +283,8 @@ data class AggregatedHookResult(
     val stopReason: String? = null,
     val permissionBehavior: PermissionBehavior? = null,
     val additionalContexts: List<String> = emptyList(),
-    val updatedInput: Map<String, @Serializable(with = AnySerializer) Any?>? = null,
-    val retry: Boolean? = null
+val updatedInput: Map<String, Any?>? = null,
+     val retry: Boolean? = null
 )
 
 /**

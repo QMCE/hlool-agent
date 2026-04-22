@@ -8,6 +8,7 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
+import kotlin.reflect.KClass
 
 /**
  * Serializer for arbitrary JSON values.
@@ -23,7 +24,7 @@ object AnySerializer : KSerializer<Any?> {
         when (value) {
             null -> jsonEncoder.encodeNull()
             is String -> jsonEncoder.encodeString(value)
-            is Number -> jsonEncoder.encodeNumber(value.toDouble())
+            is Number -> jsonEncoder.encodeString(value.toString())
             is Boolean -> jsonEncoder.encodeBoolean(value)
             is List<*> -> jsonEncoder.encodeJsonElement(JsonArray(value.map { anyToJsonElement(it) }))
             is Map<*, *> -> jsonEncoder.encodeJsonElement(JsonObject(value.mapNotNull { (k, v) ->

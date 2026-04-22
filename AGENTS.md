@@ -1,73 +1,42 @@
-# Cocacode Agents
+# Cocacode Developer Guide
 
-## Overview
+## Build Commands
 
-Cocacode supports a multi-agent system with customizable agents for different coding tasks.
-
-## Available Agents
-
-### Default Agent
-
-The default agent handles general coding tasks:
-- Code generation and editing
-- File operations
-- Search and navigation
-- Problem solving
-
-### Code Review Agent
-
-Specialized agent for code review tasks:
-- Pattern detection
-- Best practice verification
-- Style consistency checks
-
-### Debug Agent
-
-Focused on debugging and troubleshooting:
-- Error analysis
-- Root cause identification
-- Fix suggestions
-
-## Agent Configuration
-
-Agents can be configured in `config.json`:
-
-```json
-{
-  "agents": {
-    "default": {
-      "model": "coca-default",
-      "temperature": 0.7
-    },
-    "review": {
-      "model": "coca-review",
-      "temperature": 0.3
-    }
-  }
-}
+```bash
+./gradlew build    # Build the project
+./gradlew run     # Run the application
+./gradlew test    # Run tests
 ```
 
-## Custom Agents
+## Architecture
 
-Create custom agents by defining:
+- **Entry point**: `src/main/kotlin/rj/cocacode/Main.kt`
+- **Language**: Kotlin 2.x, JVM 25
+- **Build system**: Gradle (build.gradle.kts)
+- **Version**: v0.3.0
 
-```json
-{
-  "name": "my-agent",
-  "description": "Custom agent description",
-  "systemPrompt": "You are a specialized...",
-  "tools": ["bash", "read", "edit"],
-  "model": "custom-model"
-}
-```
+## Key Directories
 
-## Agent Communication
+| Directory | Purpose |
+|----------|---------|
+| `src/main/kotlin/rj/cocacode/` | Main source code |
+| `src/main/kotlin/rj/cocacode/query/` | Query engine (incomplete, many missing classes) |
+| `src/main/kotlin/rj/cocacode/tools/` | Tool implementations |
+| `src/main/kotlin/rj/cocacode/hooks/` | Hook system |
+| `src/main/kotlin/rj/cocacode/services/` | External services |
 
-Agents communicate via the internal message bus:
-- Tool requests
-- State updates
-- Results
+## Current Issues
 
-## Implementation
+1. Build fails - many compilation errors in query/ directory (missing classes like `ToolExecutionResult`, `Metrics`, `ApiError`, `AbortController`)
+2. MCP (Model Context Protocol) files have broken code
 
-See `src/main/kotlin/rj/cocacode/agents/` for implementation details.
+## Config Locations
+
+- User settings: `~/.cocacode/settings.json`
+- Project settings: `{project}/.cocacode/settings.json`
+
+Environment variables: Use `COCCACODE_` prefix (fallback to `ANTHROPIC_` for compatibility).
+
+## Reference Source
+
+Claude Code TypeScript source at: `../claude_code_src-master/src/` - use for copying missing logic.

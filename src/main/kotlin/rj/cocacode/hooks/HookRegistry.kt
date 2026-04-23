@@ -144,7 +144,7 @@ object HookRegistry {
             
             evaluatePatternMatch(conditionPattern, toolInput)
         } catch (e: Exception) {
-            Logger.warn("Failed to evaluate if condition: $condition", e)
+            Logger.warn("Failed to evaluate if condition: $condition - ${e.message}")
             false
         }
     }

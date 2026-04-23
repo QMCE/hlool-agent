@@ -137,35 +137,35 @@ fun getRuleBehaviorDescription(behavior: PermissionBehavior): String {
 
 sealed class PermissionUpdate {
     data class AddRules(
-        val destination: PermissionUpdateDestination,
+        val destination: PermissionRuleSource,
         val rules: List<PermissionRuleValue>,
         val behavior: PermissionBehavior
     ) : PermissionUpdate()
 
     data class ReplaceRules(
-        val destination: PermissionUpdateDestination,
+        val destination: PermissionRuleSource,
         val rules: List<PermissionRuleValue>,
         val behavior: PermissionBehavior
     ) : PermissionUpdate()
 
     data class RemoveRules(
-        val destination: PermissionUpdateDestination,
+        val destination: PermissionRuleSource,
         val rules: List<PermissionRuleValue>,
         val behavior: PermissionBehavior
     ) : PermissionUpdate()
 
     data class SetMode(
-        val destination: PermissionUpdateDestination,
+        val destination: PermissionRuleSource,
         val mode: ExternalPermissionMode
     ) : PermissionUpdate()
 
     data class AddDirectories(
-        val destination: PermissionUpdateDestination,
+        val destination: PermissionRuleSource,
         val directories: List<String>
     ) : PermissionUpdate()
 
     data class RemoveDirectories(
-        val destination: PermissionUpdateDestination,
+        val destination: PermissionRuleSource,
         val directories: List<String>
     ) : PermissionUpdate()
 }

@@ -94,9 +94,9 @@ object JsonUtils {
         prettyPrint = false
     }
     
-    fun <T> parse(jsonString: String, clazz: KClass<T>): T? {
+    fun <T> parse(jsonString: String, serializer: KSerializer<T>): T? {
         return try {
-            json.decodeFromString(clazz, jsonString)
+            json.decodeFromString(serializer, jsonString)
         } catch (e: Exception) {
             null
         }

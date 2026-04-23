@@ -1,0 +1,932 @@
+{
+  "context_window": 128000,
+  "model": "big-pickle",
+  "request": {
+    "estimated_tokens": 18704,
+    "message_count": 53,
+    "messages": [
+      {
+        "content": {
+          "Text": "You are AtomCode. When asked who you are, say you are AtomCode (an AI coding agent by AtomGit) running the big-pickle model. Never claim to be another product.\nWorking directory: \\\\?\\C:\\Users\\ClassTen\\cocacode\\cocacode\nAll file paths in tool calls must be absolute, resolved under \\\\?\\C:\\Users\\ClassTen\\cocacode\\cocacode. Verify file existence before editing.\nPlatform: windows | Shell: C:\\Windows\\system32\\cmd.exe\n\n=== RULES (follow these strictly) ===\nYou are AtomCode, a coding agent that helps users with software engineering tasks within the current project.\nSolve tasks efficiently with minimal tool calls. Act decisively — go straight to tool calls or answers.\n\n## WORKFLOW:\nFor simple changes (rename, one-line fix, config tweak): just do it — search, edit, verify, done.\nFor non-trivial features or multi-file changes: SEARCH → PLAN (one sentence) → EDIT → VERIFY → SUMMARIZE.\nFor bug reports (\"not working\"/\"wrong output\"/\"error\"): REPRODUCE (run the failing command first) → DIAGNOSE → FIX → VERIFY.\n\nGuidelines:\n- REPRODUCE: run the failing command with bash BEFORE reading code. See the real error first.\n- VERIFY: run a fast check (`cargo check`, `tsc --noEmit`, or equivalent). Avoid full builds, dev servers, or watchers.\n- The turn ends naturally when no more tool calls are needed.\n- STOP WHEN STUCK: if after 3 rounds of search/read you haven't found the issue, stop. Tell the user what you checked and suggest next diagnostic steps (e.g., runtime logs, environment checks, reproduction steps). Do NOT keep searching for something that may not be in the code.\n\n## TOOLS:\nCall multiple tools in ONE turn. Do NOT split into separate turns.\nExample: creating 3 files → call write_file 3 times in ONE response.\nExample: reading 4 files → call read_file 4 times in ONE response.\nThe fewer turns you use, the better.\nTool results may be truncated or condensed. If you need more detail, re-read the specific section with offset/limit.\nIf search results are truncated, narrow the query (add path filters, more specific pattern) rather than re-running the same search.\n\n## DOING TASKS:\n- Do not propose changes to code you haven't read. Read first, then modify.\n- Prefer editing existing files over creating new ones.\n- If an approach fails, diagnose WHY before switching tactics. Read the error, check your assumptions, try a focused fix. Don't retry the identical action blindly, but don't abandon a viable approach after a single failure either.\n- Don't add features, refactor code, or make improvements beyond what was asked. A bug fix doesn't need surrounding code cleaned up.\n- Don't add error handling or validation for scenarios that can't happen. Only validate at system boundaries.\n- Don't create helpers or abstractions for one-time operations. Three similar lines is better than a premature abstraction.\n- Be careful not to introduce security vulnerabilities (command injection, XSS, SQL injection).\n- Don't guess library APIs. Read the source or documentation first.\n- Report outcomes faithfully. If tests fail, say so. If you didn't verify, say so. Never claim success without evidence.\n\n## WHEN COMMANDS FAIL:\nRead the error output carefully. Identify the root cause. Fix it.\nDo NOT retry the same command hoping for a different result.\nDo NOT panic or start exploring unrelated files.\nIf the error is unclear, read the relevant source code to understand the context.\n\n## RISKY ACTIONS:\nBefore destructive operations (delete files, force push, drop tables, kill processes), check with the user first. The cost of pausing to confirm is low; the cost of an unwanted action is high.\n\n## OUTPUT:\nWhen executing tasks: keep text brief and direct. Lead with action, not reasoning.\nWhen explaining or answering questions: be thorough — the user is asking because they need to understand.\nDo NOT restate what the user said — just do it.\nSkip filler words, preamble, and transitions.\nFocus output on: decisions needing user input, key findings, errors or blockers.\nUse tables for structured data.\nMatch the user's language. If the user writes in Chinese, respond in Chinese. If in English, respond in English.\n\n## CONTEXT:\nThe system will automatically compress prior messages as context fills up. Your conversation is not limited by the context window. After compression, do NOT assume prior tool results are still available. Re-read files and re-check state before continuing.\n\\\n\n## WINDOWS PLATFORM RULES:\n\n- Bash runs via cmd.exe, NOT WSL. Use Windows syntax: dir (not ls), where (not which), type (not cat).\n- Path separators: use \\\\ in commands. Example: cd src\\\\components\n- Install tools: use winget, choco, or direct download. NOT apt/brew.\n- Check tools: where <tool_name> (not which).\n- PowerShell: for complex scripts, use powershell -Command \"...\"\n- Virtual environments: check for Scripts\\\\ subdirectory (not bin/)\n"
+        },
+        "role": "System"
+      },
+      {
+        "content": {
+          "Text": "读一下agents.md， 继续参考claude——code——src-master进行修复、构建、commit、提交   ultrathink"
+        },
+        "role": "User"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"pattern\": \"**/*.md\"}",
+                "id": "call_function_22krplzfoqas_1",
+                "name": "glob"
+              },
+              {
+                "arguments": "{\"pattern\": \"**/claude-code-src-master/**/*\"}",
+                "id": "call_function_22krplzfoqas_2",
+                "name": "glob"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_22krplzfoqas_1",
+            "output": "No files matching '**/*.md'",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_22krplzfoqas_2",
+            "output": "No files matching '**/claude-code-src-master/**/*'",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"depth\": 3}",
+                "id": "call_function_s07s47fid7c3_1",
+                "name": "list_directory"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_s07s47fid7c3_1",
+            "output": "[list_directory: .gitignore]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\AGENTS.md\"}",
+                "id": "call_function_69wy6gzx6nj5_1",
+                "name": "read_file"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_69wy6gzx6nj5_1",
+            "output": "[Read file (42 lines):    1| # Cocacode Developer Guide]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"depth\": 3, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\"}",
+                "id": "call_function_pt0kta9qu0tu_1",
+                "name": "list_directory"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_pt0kta9qu0tu_1",
+            "output": "[list_directory: QueryEngine.ts]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": "先运行 build 看看当前有什么编译错误：\n",
+            "tool_calls": [
+              {
+                "arguments": "{\"command\": \"cd C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode && .\\\\gradlew build 2>&1\", \"timeout\": 120}",
+                "id": "call_function_froiqktn29ro_1",
+                "name": "bash"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_froiqktn29ro_1",
+            "output": "[bash (94 lines): [elapsed: 90.1s]]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"depth\": 2, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\\\\query\"}",
+                "id": "call_function_fnkjzelwdag1_1",
+                "name": "list_directory"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_fnkjzelwdag1_1",
+            "output": "config.ts\ndeps.ts\nstopHooks.ts\ntokenBudget.ts",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"command\": \"dir /b C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\\\\query\\\\\"}",
+                "id": "call_function_i3xc9flq7iee_1",
+                "name": "bash"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_i3xc9flq7iee_1",
+            "output": "[elapsed: 0.1s]\nconfig.ts\ndeps.ts\nstopHooks.ts\ntokenBudget.ts\n\n[killed: no new output for 90s — output above is partial]\n[cwd: \\\\?\\C:\\Users\\ClassTen\\cocacode\\cocacode]",
+            "success": false
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": "让我查看 reference source 中的 deps.ts 文件，参考实现：\n\n",
+            "tool_calls": [
+              {
+                "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\\\\query\\\\deps.ts\"}",
+                "id": "call_function_n1isvny99as5_1",
+                "name": "read_file"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_n1isvny99as5_1",
+            "output": "[Read file (40 lines):    1| import { randomUUID } from 'crypto']",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"depth\": 1, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\query\"}",
+                "id": "call_function_kbo7a7hxgl2w_1",
+                "name": "list_directory"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_kbo7a7hxgl2w_1",
+            "output": "Deps.kt\nQuery.kt\nQueryConfig.kt\nQueryContext.kt\nStopHooks.kt\nTaskScheduler.kt\nTokenBudget.kt",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\query\\\\Deps.kt\"}",
+                "id": "call_function_iregq12c5ptg_1",
+                "name": "read_file"
+              },
+              {
+                "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\query\\\\Query.kt\"}",
+                "id": "call_function_iregq12c5ptg_2",
+                "name": "read_file"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_iregq12c5ptg_1",
+            "output": "[Read file (135 lines):    1| package rj.cocacode.query]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_iregq12c5ptg_2",
+            "output": "[Read file (91 lines): [File skeleton: Query.kt (1368 lines). Use read_file with of]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": "让我查看更多错误并了解具体缺少哪些类。首先，我看看 types 目录有哪些已定义的类：\n",
+            "tool_calls": [
+              {
+                "arguments": "{\"depth\": 2, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\types\"}",
+                "id": "call_function_3lk9be7lj3dh_1",
+                "name": "list_directory"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_3lk9be7lj3dh_1",
+            "output": "Messages.kt",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "Text": "(completed)"
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "Text": "Summarize what you changed and finish."
+        },
+        "role": "User"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"depth\": 2, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\"}",
+                "id": "call_function_kfgwa4jq5x28_1",
+                "name": "list_directory"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_kfgwa4jq5x28_1",
+            "output": "[list_directory: Main.kt]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\services\\\\mcp\\\\McpClient.kt\", \"limit\": 100, \"offset\": 210}",
+                "id": "call_function_d4owabhx9uqr_1",
+                "name": "read_file"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_d4owabhx9uqr_1",
+            "output": "[Read file (105 lines):  210|             LogManager.logError(\"StdioTransport: Faile]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\types\\\\Messages.kt\"}",
+                "id": "call_function_ey8c3nyyly3a_1",
+                "name": "read_file"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_ey8c3nyyly3a_1",
+            "output": "   1| package rj.cocacode.types\n   2| \n   3| import kotlinx.serialization.Serializable\n   4| \n   5| @Serializable\n   6| data class Message(\n   7|     val id: String,\n   8|     val type: MessageType,\n   9|     val content: String,\n  10|     val timestamp: Long = System.currentTimeMillis(),\n  11|     val attachments: List<Attachment> = emptyList()\n  12| )\n  13| \n  14| @Serializable\n  15| enum class MessageType {\n  16|     USER,\n  17|     ASSISTANT,\n  18|     SYSTEM,\n  19|     TOOL,\n  20|     TOOL_RESULT\n  21| }\n  22| \n  23| @Serializable\n  24| data class Attachment(\n  25|     val type: String,\n  26|     val fileName: String? = null,\n  27|     val mimeType: String? = null,\n  28|     val data: String? = null\n  29| )\n  30| \n  31| @Serializable\n  32| data class Conversation(\n  33|     val id: String,\n  34|     val messages: List<Message> = emptyList(),\n  35|     val createdAt: Long = System.currentTimeMillis(),\n  36|     val updatedAt: Long = System.currentTimeMillis()\n  37| ) {\n  38|     fun addMessage(message: Message): Conversation = copy(\n  39|         messages = messages + message,\n  40|         updatedAt = System.currentTimeMillis()\n  41|     )\n  42| }\n  43| \n  44| object MessageBuilder {\n  45|     fun userMessage(content: String) = Message(\n  46|         id = rj.cocacode.utils.generateUuid(),\n  47|         type = MessageType.USER,\n  48|         content = content\n  49|     )\n  50|     \n  51|     fun assistantMessage(content: String) = Message(\n  52|         id = rj.cocacode.utils.generateUuid(),\n  53|         type = MessageType.ASSISTANT,\n  54|         content = content\n  55|     )\n  56|     \n  57|     fun systemMessage(content: String) = Message(\n  58|         id = rj.cocacode.utils.generateUuid(),\n  59|         type = MessageType.SYSTEM,\n  60|         content = content\n  61|     )\n  62|     \n  63|     fun toolResultMessage(toolName: String, result: String) = Message(\n  64|         id = rj.cocacode.utils.generateUuid(),\n  65|         type = MessageType.TOOL_RESULT,\n  66|         content = \"$toolName: $result\"\n  67|     )\n  68| }",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\query\\\\Query.kt\", \"limit\": 100}",
+                "id": "call_function_gvdane1fbcu7_1",
+                "name": "read_file"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_gvdane1fbcu7_1",
+            "output": "   1| package rj.cocacode.query\n   2| \n   3| import kotlinx.coroutines.*\n   4| import kotlinx.coroutines.flow.*\n   5| import rj.cocacode.utils.generateUuid\n   6| import rj.cocacode.types.Message\n   7| import rj.cocacode.types.MessageType\n   8| import rj.cocacode.types.Attachment\n   9| import rj.cocacode.tools.Tool\n  10| import rj.cocacode.tools.ToolRegistry\n  11| import rj.cocacode.tools.ToolExecutionResult\n  12| import rj.cocacode.config.FeatureFlags\n  13| import rj.cocacode.config.ApiConfig\n  14| import rj.cocacode.state.AppStateManager\n  15| import rj.cocacode.state.AppState\n  16| import rj.cocacode.utils.ThinkingConfig\n  17| import rj.cocacode.utils.TokenEstimator\n  18| import rj.cocacode.utils.Logger\n  19| import rj.cocacode.utils.Metrics\n  20| import rj.cocacode.services.api.ApiClient\n  21| import rj.cocacode.services.api.ApiError\n  22| import rj.cocacode.services.api.FallbackTriggeredError\n  23| \n  24| // Maximum recovery attempts for max_output_tokens errors\n  25| private const val MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3\n  26| \n  27| /**\n  28|  * Query parameters for the main query loop.\n  29|  */\n  30| data class QueryParams(\n  31|     val messages: List<Message>,\n  32|     val systemPrompt: String,\n  33|     val userContext: Map<String, String>,\n  34|     val systemContext: Map<String, String>,\n  35|     val canUseTool: (String) -> Boolean,\n  36|     val toolUseContext: QueryToolUseContext,\n  37|     val fallbackModel: String? = null,\n  38|     val querySource: QuerySource,\n  39|     val maxOutputTokensOverride: Int? = null,\n  40|     val maxTurns: Int? = null,\n  41|     val skipCacheWrite: Boolean = false,\n  42|     val taskBudget: TaskBudget? = null,\n  43|     val deps: QueryDeps? = null\n  44| )\n  45| \n  46| /**\n  47|  * Task budget for controlling total token usage across a turn.\n  48|  */\n  49| data class TaskBudget(\n  50|     val total: Int\n  51| )\n  52| \n  53| /**\n  54|  * Query source types.\n  55|  */\n  56| enum class QuerySource {\n  57|     REPL_MAIN_THREAD,\n  58|     SDK,\n  59|     SUBAGENT,\n  60|     COMPACT,\n  61|     SESSION_MEMORY,\n  62|     BACKGROUND\n  63| }\n  64| \n  65| /**\n  66|  * Query tool use context with options and state.\n  67|  */\n  68| data class QueryToolUseContext(\n  69|     val options: QueryToolUseOptions,\n  70|     val abortController: AbortController,\n  71|     val readFileState: FileStateCache,\n  72|     val getAppState: () -> AppState,\n  73|     val setAppState: (AppState) -> Unit,\n  74|     val messages: List<Message>,\n  75|     val setInProgressToolUseIDs: () -> Unit,\n  76|     val setResponseLength: (Int) -> Unit,\n  77|     val updateFileHistoryState: () -> Unit,\n  78|     val updateAttributionState: () -> Unit,\n  79|     val agentId: String? = null,\n  80|     val queryTracking: QueryTracking? = null,\n  81|     val contentReplacementState: ContentReplacementState? = null\n  82| )\n  83| \n  84| /**\n  85|  * Query tool use options.\n  86|  */\n  87| data class QueryToolUseOptions(\n  88|     val commands: List<String>,\n  89|     val debug: Boolean,\n  90|     val mainLoopModel: String,\n  91|     val tools: List<Tool>,\n  92|     val verbose: Boolean,\n  93|     val thinkingConfig: ThinkingConfig,\n  94|     val mcpClients: List<McpServerConnection>,\n  95|     val mcpResources: Map<String, Any>,\n  96|     val isNonInteractiveSession: Boolean,\n  97|     val agentDefinitions: AgentDefinitions,\n  98|     val customSystemPrompt: String?,\n  99|     val appendSystemPrompt: String?,\n 100|     val refreshTools: (() -> List<Tool>)? = null,\n 101|     val addNotification: ((Notification) -> Unit)? = null\n 102| )\n 103| \n 104| /**\n 105|  * Content replacement state for tool result budget.\n 106|  */\n 107| data class ContentReplacementState(\n 108|     val replacements: Map<String, String> = emptyMap()\n 109| )\n 110| \n 111| /**\n 112|  * Query tracking for chain ID and depth.\n 113|  */\n 114| data class QueryTracking(\n 115|     val chainId: String,\n 116|     val depth: Int\n 117| )\n 118| \n 119| /**\n 120|  * MCP server connection.\n 121|  */\n 122| data class McpServerConnection(\n 123|     val name: String,\n 124|     val status: String,\n 125|     val tools: List<String> = emptyList(),\n 126|     val resources: List<String> = emptyList()\n 127| )\n 128| \n 129| /**\n 130|  * Agent definitions.\n 131|  */\n 132| data class AgentDefinitions(\n 133|     val activeAgents: List<AgentDefinition>,\n 134|     val allowedAgentTypes: List<String> = emptyList()\n 135| )\n 136| \n 137| /**\n 138|  * Agent definition.\n 139|  */\n 140| data class AgentDefinition(\n 141|     val name: String,\n 142|     val description: String,\n 143|     val prompt: String\n 144| )\n 145| \n 146| /**\n 147|  * Notification for UI updates.\n 148|  */\n 149| data class Notification(\n 150|     val key: String,\n 151|     val text: String,\n 152|     val priority: String\n 153| )\n 154| \n 155| /**\n 156|  * Query loop state carried between iterations.\n 157|  */\n 158| data class QueryLoopState(\n 159|     val messages: List<Message>,\n 160|     val toolUseContext: QueryToolUseContext,\n 161|     val autoCompactTracking: AutoCompactTrackingState?,\n 162|     val maxOutputTokensRecoveryCount: Int,\n 163|     val hasAttemptedReactiveCompact: Boolean,\n 164|     val maxOutputTokensOverride: Int?,\n 165|     val pendingToolUseSummary: Deferred<ToolUseSummaryMessage?>?,\n 166|     val stopHookActive: Boolean?,\n 167|     val turnCount: Int,\n 168|     val transition: Continue?\n 169| )\n 170| \n 171| /**\n 172|  * Auto compact tracking state.\n 173|  */\n 174| data class AutoCompactTrackingState(\n 175|     val compacted: Boolean,\n 176|     val turnId: String,\n 177|     val turnCounter: Int,\n 178|     val consecutiveFailures: Int\n 179| )\n 180| \n 181| /**\n 182|  * Continue reasons for query loop transitions.\n 183|  */\n 184| sealed class Continue {\n 185|     data class ContinueReason(val reason: String) : Continue()\n 186|     data class CollapseDrainRetry(val committed: Int) : Continue()\n 187|     data class ReactiveCompactRetry(val reason: String = \"reactive_compact_retry\") : Continue()\n 188|     data class MaxOutputTokensEscalate(val reason: String = \"max_output_tokens_escalate\") : Continue()\n 189|     data class MaxOutputTokensRecovery(val attempt: Int) : Continue()\n 190|     data class StopHookBlocking(val reason: String = \"stop_hook_blocking\") : Continue()\n 191|     data class TokenBudgetContinuation(val reason: String = \"token_budget_continuation\") : Continue()\n 192|     data class NextTurn(val reason: String = \"next_turn\") : Continue()\n 193| }\n 194| \n 195| /**\n 196|  * Terminal states for query loop.\n 197|  */\n 198| sealed class Terminal {\n 199|     data class Reason(val reason: String, val error: Throwable? = null, val turnCount: Int? = null) : Terminal()\n 200| }\n 201| \n 202| /**\n 203|  * Stream events from query loop.\n 204|  */\n 205| sealed class StreamEvent {\n 206|     data object StreamRequestStart : StreamEvent()\n 207|     data class StreamChunk(val content: String, val delta: String? = null) : StreamEvent()\n 208|     data class AssistantMessage(val message: Message) : StreamEvent()\n 209|     data class ToolUseMessage(val message: Message) : StreamEvent()\n 210|     data class ToolResultMessage(val message: Message) : StreamEvent()\n 211|     data class ErrorMessage(val content: String, val error: String?) : StreamEvent()\n 212|     data class TombstoneMessage(val message: Message) : StreamEvent()\n 213|     data class CompactBoundaryMessage(val type: String, val tokensFreed: Int) : StreamEvent()\n 214|     data class ToolUseSummaryMessage(val summary: String, val toolUseIds: List<String>) : StreamEvent()\n 215| }\n 216| \n 217| /**\n 218|  * Tool use summary message.\n 219|  */\n 220| data class ToolUseSummaryMessage(\n 221|     val summary: String,\n 222|     val toolUseIds: List<String>\n 223| )\n 224| \n 225| /**\n 226|  * Request start event.\n 227|  */\n 228| data class RequestStartEvent(\n 229|     val timestamp: Long = System.currentTimeMillis()\n 230| )\n 231| \n 232| /**\n 233|  * Check if message is a withheld max_output_tokens error.\n 234|  */\n 235| fun isWithheldMaxOutputTokens(msg: Any?): Boolean {\n 236|     if (msg is Message) {\n 237|         return msg.type == MessageType.ASSISTANT && msg.apiError == \"max_output_tokens\"\n 238|     }\n 239|     return false\n 240| }\n 241| \n 242| /**\n 243|  * Check if message is a prompt-too-long error.\n 244|  */\n 245| fun isPromptTooLongMessage(msg: Message): Boolean {\n 246|     return msg.apiError == \"prompt_too_long\" || msg.content.contains(\"prompt too long\", ignoreCase = true)\n 247| }\n 248| \n 249| /**\n 250|  * Check if message is an API error.\n 251|  */\n 252| fun Message.isApiErrorMessage(): Boolean {\n 253|     return this.apiError != null\n 254| }\n 255| \n 256| /**\n 257|  * Extension property for API error on Message.\n 258|  */\n 259| var Message.apiError: String?\n 260|     get() = null\n 261|     set(_) {}\n 262| \n 263| /**\n 264|  * Yield missing tool result blocks for interrupted tools.\n 265|  */\n 266| fun yieldMissingToolResultBlocks(\n 267|     assistantMessages: List<Message>,\n 268|     errorMessage: String\n 269| ): Flow<Message> = flow {\n 270|     for (assistantMessage in assistantMessages) {\n 271|         val toolUseBlocks = assistantMessage.contentBlocks.filter { it.type == \"tool_use\" }\n 272|         for (toolUse in toolUseBlocks) {\n 273|             val resultMessage = Message(\n 274|                 id = generateUuid(),\n 275|                 type = MessageType.USER,\n 276|                 content = errorMessage,\n 277|                 isError = true,\n 278|                 toolUseId = toolUse.id\n 279|             )\n 280|             emit(resultMessage)\n 281|         }\n 282|     }\n 283| }\n 284| \n 285| /**\n 286|  * Main query function - async generator for multi-turn dialogue.\n 287|  * \n 288|  * This is the core engine of the conversational AI system, handling:\n 289|  * - Multi-turn dialogue with tool execution\n 290|  * - Error recovery (prompt-too-long, max_output_tokens, model fallback)\n 291|  * - Context compaction (autocompact, reactive compact, microcompact)\n 292|  * - Token budget checking and auto-continue\n 293|  * - Post-sampling hook execution\n 294|  * - Memory and skill prefetch\n 295|  */\n 296| suspend fun query(params: QueryParams): Flow<Any> = flow {\n 297|     val consumedCommandUuids = mutableListOf<String>()\n 298|     \n 299|     // Run the main query loop\n 300|     val terminal = queryLoop(params, consumedCommandUuids)\n 301|     \n 302|     terminal.collect { event ->\n 303|         emit(event)\n 304|     }\n 305|     \n 306|     // Notify command lifecycle for consumed commands\n 307|     for (uuid in consumedCommandUuids) {\n 308|         notifyCommandLifecycle(uuid, \"completed\")\n 309|     }\n 310| }\n 311| \n 312| /**\n 313|  * Main query loop - handles multi-turn conversation with tool execution.\n 314|  */\n 315| suspend fun queryLoop(\n 316|     params: QueryParams,\n 317|     consumedCommandUuids: MutableList<String>\n 318| ): Flow<Any> = flow {\n 319|     // Immutable params - never reassigned during the query loop\n 320|     val systemPrompt = params.systemPrompt\n 321|     val userContext = params.userContext\n 322|     val systemContext = params.systemContext\n 323|     val canUseTool = params.canUseTool\n 324|     val fallbackModel = params.fallbackModel\n 325|     val querySource = params.querySource\n 326|     val maxTurns = params.maxTurns\n 327|     val skipCacheWrite = params.skipCacheWrite\n 328|     val deps = params.deps ?: productionDeps()\n 329|     \n 330|     // Mutable cross-iteration state\n 331|     var state = QueryLoopState(\n 332|         messages = params.messages,\n 333|         toolUseContext = params.toolUseContext,\n 334|         maxOutputTokensOverride = params.maxOutputTokensOverride,\n 335|         autoCompactTracking = null,\n 336|         stopHookActive = null,\n 337|         maxOutputTokensRecoveryCount = 0,\n 338|         hasAttemptedReactiveCompact = false,\n 339|         turnCount = 1,\n 340|         pendingToolUseSummary = null,\n 341|         transition = null\n 342|     )\n 343|     \n 344|     val budgetTracker = if (FeatureFlags.isEnabled(\"TOKEN_BUDGET\")) {\n 345|         createBudgetTracker()\n 346|     } else null\n 347|     \n 348|     // Task budget remaining tracking across compaction boundaries\n 349|     var taskBudgetRemaining: Int? = null\n 350|     \n 351|     // Build query config once at entry\n 352|     val config = buildQueryConfig()\n 353|     \n 354|     // Memory prefetch - fired once per user turn\n 355|     val pendingMemoryPrefetch = startMemoryPrefetch(state.messages, state.toolUseContext)\n 356|     \n 357|     // Main query loop - runs until terminal state\n 358|     while (true) {\n 359|         // Destructure state at the top of each iteration\n 360|         var toolUseContext = state.toolUseContext\n 361|         val messages = state.messages\n 362|         val autoCompactTracking = state.autoCompactTracking\n 363|         val maxOutputTokensRecoveryCount = state.maxOutputTokensRecoveryCount\n 364|         val hasAttemptedReactiveCompact = state.hasAttemptedReactiveCompact\n 365|         val maxOutputTokensOverride = state.maxOutputTokensOverride\n 366|         val pendingToolUseSummary = state.pendingToolUseSummary\n 367|         val stopHookActive = state.stopHookActive\n 368|         val turnCount = state.turnCount\n 369|         \n 370|         // Skill discovery prefetch - per iteration\n 371|         val pendingSkillPrefetch = startSkillDiscoveryPrefetch(messages, toolUseContext)\n 372|         \n 373|         emit(StreamEvent.StreamRequestStart)\n 374|         \n 375|         // Initialize or increment query chain tracking\n 376|         val queryTracking = if (toolUseContext.queryTracking != null) {\n 377|             QueryTracking(\n 378|                 chainId = toolUseContext.queryTracking.chainId,\n 379|                 depth = toolUseContext.queryTracking.depth + 1\n 380|             )\n 381|         } else {\n 382|             QueryTracking(\n 383|                 chainId = deps.uuid(),\n 384|                 depth = 0\n 385|             )\n 386|         }\n 387|         \n 388|         toolUseContext = toolUseContext.copy(queryTracking = queryTracking)\n 389|         \n 390|         // Get messages after compact boundary\n 391|         var messagesForQuery = getMessagesAfterCompactBoundary(messages)\n 392|         \n 393|         // Apply tool result budget\n 394|         messagesForQuery = applyToolResultBudget(\n 395|             messagesForQuery,\n 396|             toolUseContext.contentReplacementState,\n 397|             querySource\n 398|         )\n 399|         \n 400|         // Apply snip compact if enabled\n 401|         var snipTokensFreed = 0\n 402|         if (FeatureFlags.isEnabled(\"HISTORY_SNIP\")) {\n 403|             val snipResult = applySnipCompact(messagesForQuery)\n 404|             messagesForQuery = snipResult.messages\n 405|             snipTokensFreed = snipResult.tokensFreed\n 406|             snipResult.boundaryMessage?.let { emit(it) }\n 407|         }\n 408|         \n 409|         // Apply microcompact before autocompact\n 410|         val microcompactResult = deps.microcompact.invoke(\n 411|             MicroCompactInput(messagesForQuery, toolUseContext, querySource)\n 412|         )\n 413|         messagesForQuery = microcompactResult.messages\n 414|         \n 415|         // Apply context collapse if enabled\n 416|         if (FeatureFlags.isEnabled(\"CONTEXT_COLLAPSE\")) {\n 417|             val collapseResult = applyContextCollapse(messagesForQuery, toolUseContext, querySource)\n 418|             messagesForQuery = collapseResult\n 419|         }\n 420|         \n 421|         val fullSystemPrompt = systemPrompt // Could append systemContext here\n 422|         \n 423|         // Run autocompact\n 424|         val (compactionResult, consecutiveFailures) = deps.autocompact.invoke(\n 425|             AutoCompactInput(\n 426|                 messages = messagesForQuery,\n 427|                 toolUseContext = toolUseContext,\n 428|                 systemPrompt = systemPrompt,\n 429|                 userContext = userContext,\n 430|                 systemContext = systemContext,\n 431|                 forkContextMessages = messagesForQuery\n 432|             ),\n 433|             querySource,\n 434|             autoCompactTracking,\n 435|             snipTokensFreed\n 436|         )\n 437|         \n 438|         if (compactionResult != null) {\n 439|             // Log compaction success event\n 440|             logEvent(\"tengu_auto_compact_succeeded\", mapOf(\n 441|                 \"originalMessageCount\" to messages.size,\n 442|                 \"compactedMessageCount\" to (compactionResult.summaryMessages.size + \n 443|                     compactionResult.attachments.size + compactionResult.hookResults.size),\n 444|                 \"preCompactTokenCount\" to compactionResult.preCompactTokenCount,\n 445|                 \"postCompactTokenCount\" to compactionResult.postCompactTokenCount\n 446|             ))\n 447|             \n 448|             // Task budget: capture pre-compact final context window\n 449|             if (params.taskBudget != null) {\n 450|                 val preCompactContext = getFinalContextTokens(messagesForQuery)\n 451|                 taskBudgetRemaining = maxOf(0, (taskBudgetRemaining ?: params.taskBudget.total) - preCompactContext)\n 452|             }\n 453|             \n 454|             // Reset tracking on every compact\n 455|             val tracking = AutoCompactTrackingState(\n 456|                 compacted = true,\n 457|                 turnId = deps.uuid(),\n 458|                 turnCounter = 0,\n 459|                 consecutiveFailures = 0\n 460|             )\n 461|             \n 462|             // Yield post-compact messages\n 463|             val postCompactMessages = buildPostCompactMessages(compactionResult)\n 464|             for (message in postCompactMessages) {\n 465|                 emit(message)\n 466|             }\n 467|             \n 468|             messagesForQuery = postCompactMessages\n 469|         } else if (consecutiveFailures != null) {\n 470|             // Autocompact failed - propagate failure count\n 471|             val tracking = autoCompactTracking?.copy(consecutiveFailures = consecutiveFailures)\n 472|                 ?: AutoCompactTrackingState(compacted = false, turnId = \"\", turnCounter = 0, consecutiveFailures = consecutiveFailures)\n 473|         }\n 474|         \n 475|         // Update tool use context with messages\n 476|         toolUseContext = toolUseContext.copy(messages = messagesForQuery)\n 477|         \n 478|         // Prepare for API call\n 479|         val assistantMessages = mutableListOf<Message>()\n 480|         val toolResults = mutableListOf<Message>()\n 481|         val toolUseBlocks = mutableListOf<ToolUseBlock>()\n 482|         var needsFollowUp = false\n 483|         \n 484|         // Get streaming tool execution setting\n 485|         val useStreamingToolExecution = config.gates.streamingToolExecution\n 486|         val streamingToolExecutor = if (useStreamingToolExecution) {\n 487|             StreamingToolExecutor(toolUseContext.options.tools, canUseTool, toolUseContext)\n 488|         } else null\n 489|         \n 490|         val appState = toolUseContext.getAppState()\n 491|         val permissionMode = appState.toolPermissionContext?.mode ?: \"auto\"\n 492|         var currentModel = getRuntimeMainLoopModel(\n 493|             permissionMode = permissionMode,\n 494|             mainLoopModel = toolUseContext.options.mainLoopModel,\n 495|             exceeds200kTokens = permissionMode == \"plan\" && doesMostRecentAssistantMessageExceed200k(messagesForQuery)\n 496|         )\n 497|         \n 498|         // Check for blocking limit (only when auto-compact is OFF)\n 499|         val collapseOwnsIt = FeatureFlags.isEnabled(\"CONTEXT_COLLAPSE\") && isAutoCompactEnabled()\n 500|         if (!compactionResult && \n 501|             querySource != QuerySource.COMPACT && \n 502|             querySource != QuerySource.SESSION_MEMORY &&\n 503|             !isReactiveCompactEnabled() &&\n 504|             !collapseOwnsIt) {\n 505|             val tokenCount = estimateTokenCount(messagesForQuery) - snipTokensFreed\n 506|             val isAtBlockingLimit = isAtBlockingLimit(tokenCount, toolUseContext.options.mainLoopModel)\n 507|             if (isAtBlockingLimit) {\n 508|                 emit(createApiErrorMessage(\"Prompt too long - conversation exceeds context limit\", \"invalid_request\"))\n 509|                 return@flow\n 510|             }\n 511|         }\n 512|         \n 513|         var attemptWithFallback = true\n 514|         \n 515|         // API streaming loop\n 516|         while (attemptWithFallback) {\n 517|             attemptWithFallback = false\n 518|             try {\n 519|                 var streamingFallbackOccurred = false\n 520|                 \n 521|                 // Call model with streaming\n 522|                 val stream = deps.callModel.invoke(\n 523|                     CallModelInput(\n 524|                         messages = prependUserContext(messagesForQuery, userContext),\n 525|                         systemPrompt = fullSystemPrompt,\n 526|                         thinkingConfig = toolUseContext.options.thinkingConfig,\n 527|                         tools = toolUseContext.options.tools,\n 528|                         signal = toolUseContext.abortController,\n 529|                         options = CallModelOptions(\n 530|  \n[... trimmed to fit turn budget ...]\nipResult = SnipResult(messages, 0, null)\n1093| \n1094| private data class MicroCompactInput(\n1095|     val messages: List<Message>,\n1096|     val toolUseContext: QueryToolUseContext,\n1097|     val querySource: QuerySource\n1098| )\n1099| \n1100| private data class MicroCompactOutput(\n1101|     val messages: List<Message>,\n1102|     val compactionInfo: CompactionInfo? = null\n1103| )\n1104| \n1105| private data class CompactionInfo(\n1106|     val pendingCacheEdits: PendingCacheEdits? = null\n1107| )\n1108| \n1109| private data class PendingCacheEdits(\n1110|     val baselineCacheDeletedTokens: Int,\n1111|     val trigger: String,\n1112|     val deletedToolIds: List<String>\n1113| )\n1114| \n1115| private fun MicroCompact.invoke(input: MicroCompactInput): MicroCompactOutput = \n1116|     MicroCompactOutput(input.messages)\n1117| \n1118| private fun applyContextCollapse(\n1119|     messages: List<Message>,\n1120|     toolUseContext: QueryToolUseContext,\n1121|     querySource: QuerySource\n1122| ): List<Message> = messages\n1123| \n1124| private data class CallModelInput(\n1125|     val messages: List<Map<String, Any>>,\n1126|     val systemPrompt: String,\n1127|     val thinkingConfig: ThinkingConfig,\n1128|     val tools: List<Tool>,\n1129|     val signal: AbortController,\n1130|     val options: CallModelOptions\n1131| )\n1132| \n1133| private data class CallModelOptions(\n1134|     val model: String,\n1135|     val fallbackModel: String? = null,\n1136|     val onStreamingFallback: (() -> Unit)? = null,\n1137|     val querySource: String = \"repl_main_thread\",\n1138|     val agents: List<AgentDefinition> = emptyList(),\n1139|     val allowedAgentTypes: List<String> = emptyList(),\n1140|     val hasAppendSystemPrompt: Boolean = false,\n1141|     val maxOutputTokensOverride: Int? = null,\n1142|     val agentId: String? = null,\n1143|     val addNotification: ((Notification) -> Unit)? = null,\n1144|     val taskBudget: TaskBudgetInput? = null\n1145| )\n1146| \n1147| private data class TaskBudgetInput(val total: Int, val remaining: Int?)\n1148| \n1149| private fun CallModel.invoke(input: CallModelInput): Flow<Message> = flow {\n1150|     // Placeholder - actual implementation would call the API\n1151| }\n1152| \n1153| private data class AutoCompactInput(\n1154|     val messages: List<Message>,\n1155|     val toolUseContext: QueryToolUseContext,\n1156|     val systemPrompt: String,\n1157|     val userContext: Map<String, String>,\n1158|     val systemContext: Map<String, String>,\n1159|     val forkContextMessages: List<Message>\n1160| )\n1161| \n1162| private data class AutoCompactOutput(\n1163|     val summaryMessages: List<Message> = emptyList(),\n1164|     val attachments: List<Message> = emptyList(),\n1165|     val hookResults: List<Message> = emptyList(),\n1166|     val preCompactTokenCount: Int = 0,\n1167|     val postCompactTokenCount: Int = 0,\n1168|     val truePostCompactTokenCount: Int = 0,\n1169|     val compactionUsage: TokenUsage? = null\n1170| )\n1171| \n1172| private data class TokenUsage(\n1173|     val input_tokens: Int,\n1174|     val output_tokens: Int,\n1175|     val cache_read_input_tokens: Int = 0,\n1176|     val cache_creation_input_tokens: Int = 0\n1177| )\n1178| \n1179| private fun AutoCompact.invoke(\n1180|     input: AutoCompactInput,\n1181|     querySource: QuerySource,\n1182|     tracking: AutoCompactTrackingState?,\n1183|     snipTokensFreed: Int\n1184| ): Pair<AutoCompactOutput?, Int?> = Pair(null, null)\n1185| \n1186| private fun buildPostCompactMessages(result: AutoCompactOutput): List<Message> = \n1187|     result.summaryMessages + result.attachments + result.hookResults\n1188| \n1189| private fun getFinalContextTokens(messages: List<Message>): Int = 0\n1190| \n1191| private fun estimateTokenCount(messages: List<Message>): Int = messages.sumBy { it.content.length / 4 }\n1192| \n1193| private fun isAtBlockingLimit(tokenCount: Int, model: String): Boolean = tokenCount > 150000\n1194| \n1195| private fun isAutoCompactEnabled(): Boolean = FeatureFlags.isEnabled(\"AUTO_COMPACT\")\n1196| \n1197| private fun isReactiveCompactEnabled(): Boolean = FeatureFlags.isEnabled(\"REACTIVE_COMPACT\")\n1198| \n1199| private fun isMediaRecoveryEnabled(): Boolean = FeatureFlags.isEnabled(\"REACTIVE_COMPACT\")\n1200| \n1201| private fun getReactiveCompact(): Any? = null\n1202| \n1203| private fun isWithheldMediaSizeError(msg: Any): Boolean = false\n1204| \n1205| private fun recoverFromContextCollapse(messages: List<Message>, querySource: QuerySource): ContextCollapseResult =\n1206|     ContextCollapseResult(messages, 0)\n1207| \n1208| private data class ContextCollapseResult(val messages: List<Message>, val committed: Int)\n1209| \n1210| private fun tryReactiveCompact(\n1211|     hasAttempted: Boolean,\n1212|     querySource: QuerySource,\n1213|     aborted: Boolean,\n1214|     messages: List<Message>,\n1215|     cacheSafeParams: CacheSafeParams\n1216| ): ReactiveCompactResult? = null\n1217| \n1218| private data class ReactiveCompactResult(\n1219|     val summaryMessages: List<Message>,\n1220|     val attachments: List<Message>,\n1221|     val hookResults: List<Message>\n1222| )\n1223| \n1224| private fun buildPostCompactMessagesFromReactive(result: ReactiveCompactResult): List<Message> =\n1225|     result.summaryMessages + result.attachments + result.hookResults\n1226| \n1227| private fun prependUserContext(messages: List<Map<String, Any>>, userContext: Map<String, String>): List<Map<String, Any>> =\n1228|     messages\n1229| \n1230| private fun getRuntimeMainLoopModel(permissionMode: String, mainLoopModel: String, exceeds200kTokens: Boolean): String = mainLoopModel\n1231| \n1232| private fun doesMostRecentAssistantMessageExceed200k(messages: List<Message>): Boolean = false\n1233| \n1234| private fun isFeatureEnabled(feature: String): Boolean = FeatureFlags.isEnabled(feature)\n1235| \n1236| private fun hasOutputTokensEnv(): Boolean = System.getenv(\"COCACODE_MAX_OUTPUT_TOKENS\") != null\n1237| \n1238| private fun executeStopFailureHooks(message: Message?, toolUseContext: QueryToolUseContext) {}\n1239| \n1240| private fun createApiErrorMessage(content: String, error: String): Message = Message(\n1241|     id = generateUuid(),\n1242|     type = MessageType.ASSISTANT,\n1243|     content = content,\n1244|     apiError = error\n1245| )\n1246| \n1247| private fun createUserMessage(content: String, isMeta: Boolean = false): Message = Message(\n1248|     id = generateUuid(),\n1249|     type = MessageType.USER,\n1250|     content = content\n1251| )\n1252| \n1253| private fun createSystemMessage(content: String, level: String = \"info\"): Message = Message(\n1254|     id = generateUuid(),\n1255|     type = MessageType.SYSTEM,\n1256|     content = content\n1257| )\n1258| \n1259| private fun createUserInterruptionMessage(toolUse: Boolean): Message = Message(\n1260|     id = generateUuid(),\n1261|     type = MessageType.USER,\n1262|     content = if (toolUse) \"Tools interrupted\" else \"User interrupted\"\n1263| )\n1264| \n1265| private fun runTools(\n1266|     toolUseBlocks: List<ToolUseBlock>,\n1267|     assistantMessages: List<Message>,\n1268|     canUseTool: (String) -> Boolean,\n1269|     toolUseContext: QueryToolUseContext\n1270| ): Flow<ToolExecutionUpdate> = flow {\n1271|     for (toolBlock in toolUseBlocks) {\n1272|         val tool = toolUseContext.options.tools.find { it.name == toolBlock.name }\n1273|         if (tool != null && canUseTool(toolBlock.name)) {\n1274|             val result = tool.execute(toolBlock.input)\n1275|             emit(ToolExecutionUpdate(\n1276|                 message = Message(\n1277|                     id = generateUuid(),\n1278|                     type = MessageType.TOOL_RESULT,\n1279|                     content = result.text,\n1280|                     isError = result.isError,\n1281|                     toolUseId = toolBlock.id\n1282|                 )\n1283|             ))\n1284|         }\n1285|     }\n1286| }\n1287| \n1288| private data class ToolUseBlock(\n1289|     val id: String,\n1290|     val name: String,\n1291|     val input: Map<String, Any>\n1292| )\n1293| \n1294| private val Message.contentBlocks: List<ContentBlock>\n1295|     get() = emptyList()\n1296| \n1297| private data class ContentBlock(\n1298|     val type: String,\n1299|     val id: String = \"\",\n1300|     val name: String = \"\",\n1301|     val input: Map<String, Any> = emptyMap(),\n1302|     val text: String = \"\",\n1303|     val content: String = \"\"\n1304| )\n1305| \n1306| private var Message.attachmentType: String?\n1307|     get() = null\n1308|     set(_) {}\n1309| \n1310| private var Message.toolUseId: String?\n1311|     get() = null\n1312|     set(_) {}\n1313| \n1314| private var Message.isError: Boolean\n1315|     get() = false\n1316|     set(_) {}\n1317| \n1318| private fun getQueuedCommands(sleepRan: Boolean, isMainThread: Boolean, currentAgentId: String?): List<QueuedCommand> = emptyList()\n1319| \n1320| private data class QueuedCommand(\n1321|     val uuid: String?,\n1322|     val mode: String,\n1323|     val agentId: String?\n1324| )\n1325| \n1326| private fun getAttachmentMessages(\n1327|     toolUseContext: QueryToolUseContext,\n1328|     queuedCommands: List<QueuedCommand>,\n1329|     messages: List<Message>,\n1330|     querySource: QuerySource\n1331| ): Flow<Message> = flow {}\n1332| \n1333| private fun startMemoryPrefetch(messages: List<Message>, toolUseContext: QueryToolUseContext): CompletableDeferred<List<Attachment>>? = null\n1334| \n1335| private fun filterDuplicateMemoryAttachments(attachments: List<Attachment>, fileState: FileStateCache): List<Attachment> = attachments\n1336| \n1337| private fun startSkillDiscoveryPrefetch(messages: List<Message>, toolUseContext: QueryToolUseContext): Any? = null\n1338| \n1339| private fun collectSkillDiscoveryPrefetch(prefetch: Any): List<Attachment> = emptyList()\n1340| \n1341| private fun removeFromQueue(commands: List<QueuedCommand>) {}\n1342| \n1343| private fun notifyCommandLifecycle(uuid: String, status: String) {}\n1344| \n1345| private fun logEvent(eventName: String, params: Map<String, Any>) {}\n1346| \n1347| private fun executePostSamplingHooks(\n1348|     messages: List<Message>,\n1349|     systemPrompt: String,\n1350|     userContext: Map<String, String>,\n1351|     systemContext: Map<String, String>,\n1352|     toolUseContext: QueryToolUseContext,\n1353|     querySource: QuerySource\n1354| ) {}\n1355| \n1356| private suspend fun generateToolUseSummaryAsync(\n1357|     toolUseBlocks: List<ToolUseBlock>,\n1358|     toolResults: List<Message>\n1359| ): ToolUseSummaryMessage? = null\n1360| \n1361| private fun getCurrentTurnTokenBudget(): Int? = null\n1362| \n1363| private fun getTurnOutputTokens(): Int = 0\n1364| \n1365| private fun incrementBudgetContinuationCount() {}\n1366| \n1367| private val Message.type: MessageType\n1368|     get() = MessageType.ASSISTANT",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\", \"pattern\": \"**/Tool*.kt\"}",
+                "id": "call_function_41flt390a2mq_1",
+                "name": "glob"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_41flt390a2mq_1",
+            "output": "No files matching '**/Tool*.kt'",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\", \"pattern\": \"class ToolExecutionResult\"}",
+                "id": "call_function_zaz21a64y91k_1",
+                "name": "grep"
+              },
+              {
+                "arguments": "{\"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\", \"pattern\": \"class Metrics\"}",
+                "id": "call_function_zaz21a64y91k_2",
+                "name": "grep"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_zaz21a64y91k_1",
+            "output": "No matches found for 'class ToolExecutionResult' in C:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode (157 files searched)",
+            "success": false
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_zaz21a64y91k_2",
+            "output": "No matches found for 'class Metrics' in C:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode (157 files searched)",
+            "success": false
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\", \"pattern\": \"class ToolExecutionResult\"}",
+                "id": "call_function_j0vjaka7439n_1",
+                "name": "grep"
+              },
+              {
+                "arguments": "{\"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\", \"pattern\": \"class Metrics\"}",
+                "id": "call_function_j0vjaka7439n_2",
+                "name": "grep"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_j0vjaka7439n_1",
+            "output": "No matches found for 'class ToolExecutionResult' in C:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src (1902 files searched)",
+            "success": false
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_j0vjaka7439n_2",
+            "output": "No matches found for 'class Metrics' in C:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src (1902 files searched)",
+            "success": false
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\", \"pattern\": \"interface.*Metrics\"}",
+                "id": "call_function_rhr9tht07al4_1",
+                "name": "grep"
+              },
+              {
+                "arguments": "{\"max_results\": 20, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\", \"pattern\": \"export.*Metrics\"}",
+                "id": "call_function_rhr9tht07al4_2",
+                "name": "grep"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_rhr9tht07al4_1",
+            "output": "No matches found for 'interface.*Metrics' in C:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src (1902 files searched)",
+            "success": false
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_rhr9tht07al4_2",
+            "output": "C:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-7-  getFpsMetrics: FpsMetricsGetter;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-8-  children: React.ReactNode;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-9-};\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx:10:export function FpsMetricsProvider(t0) {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-11-  const $ = _c(3);\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-12-  const {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-13-    getFpsMetrics,\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-24-  }\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-25-  return t1;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-26-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx:27:export function useFpsMetrics() {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-28-  return useContext(FpsMetricsContext);\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-29-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\context\\fpsMetrics.tsx-30-//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJSZWFjdCIsImNyZWF0ZUNvbnRleHQiLCJ1c2VDb250ZXh0IiwiRnBzTWV0cmljcyIsIkZwc01ldHJpY3NHZXR0ZXIiLCJGcHNNZXRyaWNzQ29udGV4dCIsInVuZGVmaW5lZCIsIlByb3BzIiwiZ2V0RnBzTWV0cmljcyIsImNoaWxkcmVuIiwiUmVhY3ROb2RlIiwiRnBzTWV0cmljc1Byb3ZpZGVyIiwidDAiLCIkIiwiX2MiLCJ0MSIsInVzZUZwc01ldHJpY3MiXSwic291cmNlcyI6WyJmcHNNZXRyaWNzLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgUmVhY3QsIHsgY3JlYXRlQ29udGV4dCwgdXNlQ29udGV4dCB9IGZyb20gJ3JlYWN0J1xuaW1wb3J0IHR5cGUgeyBGcHNNZXRyaWNzIH0gZnJvbSAnLi4vdXRpbHMvZnBzVHJhY2tlci5qcydcblxudHlwZSBGcHNNZXRyaWNzR2V0dGVyID0gKCkgPT4gRnBzTWV0cmljcyB8IHVuZGVmaW5lZFxuXG5jb25zdCBGcHNNZXRyaWNzQ29udGV4dCA9IGNyZWF0ZUNvbnRleHQ8RnBzTWV0cmljc0dldHRlciB8IHVuZGVmaW5lZD4odW5kZWZpbmVkKVxuXG50eXBlIFByb3BzID0ge1xuICBnZXRGcHNNZXRyaWNzOiBGcHNNZXRyaWNzR2V0dGVyXG4gIGNoaWxkcmVuOiBSZWFjdC5SZWFjdE5vZGVcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIEZwc01ldHJpY3NQcm92aWRlcih7XG4gIGdldEZwc01ldHJpY3MsXG4gIGNoaWxkcmVuLFxufTogUHJvcHMpOiBSZWFjdC5SZWFjdE5vZGUge1xuICByZXR1cm4gKFxuICAgIDxGcHNNZXRyaWNzQ29udGV4dC5Qcm92aWRlciB2YWx1ZT17Z2V0RnBzTWV0cmljc30+XG4gICAgICB7Y2hpbGRyZW59XG4gICAgPC9GcHNNZXRyaWNzQ29udGV4dC5Qcm92aWRlcj5cbiAgKVxufVxuXG5leHBvcnQgZnVuY3Rpb24gdXNlRnBzTWV0cmljcygpOiBGcHNNZXRyaWNzR2V0dGVyIHwgdW5kZWZpbmVkIHtcbiAgcmV0dXJuIHVzZUNvbnRleHQoRnBzTWV0cmljc0NvbnRleHQpXG59XG4iXSwibWFwcGluZ3MiOiI7QUFBQSxPQUFPQSxLQUFLLElBQUlDLGFBQWEsRUFBRUMsVUFBVSxRQUFRLE9BQU87QUFDeEQsY0FBY0MsVUFBVSxRQUFRLHdCQUF3QjtBQUV4RCxLQUFLQyxnQkFBZ0IsR0FBRyxHQUFHLEdBQUdELFVBQVUsR0FBRyxTQUFTO0FBRXBELE1BQU1FLGlCQUFpQixHQUFHSixhQUFhLENBQUNHLGdCQUFnQixHQUFHLFNBQVMsQ0FBQyxDQUFDRSxTQUFTLENBQUM7QUFFaEYsS0FBS0MsS0FBSyxHQUFHO0VBQ1hDLGFBQWEsRUFBRUosZ0JBQWdCO0VBQy9CSyxRQUFRLEVBQUVULEtBQUssQ0FBQ1UsU0FBUztBQUMzQixDQUFDO0FBRUQsT0FBTyxTQUFBQyxtQkFBQUMsRUFBQTtFQUFBLE1BQUFDLENBQUEsR0FBQUMsRUFBQTtFQUE0QjtJQUFBTixhQUFBO0lBQUFDO0VBQUEsSUFBQUcsRUFHM0I7RUFBQSxJQUFBRyxFQUFBO0VBQUEsSUFBQUYsQ0FBQSxRQUFBSixRQUFBLElBQUFJLENBQUEsUUFBQUwsYUFBQTtJQUVKTyxFQUFBLCtCQUFtQ1AsS0FBYSxDQUFiQSxjQUFZLENBQUMsQ0FDN0NDLFNBQU8sQ0FDViw2QkFBNkI7SUFBQUksQ0FBQSxNQUFBSixRQUFBO0lBQUFJLENBQUEsTUFBQUwsYUFBQTtJQUFBSyxDQUFBLE1BQUFFLEVBQUE7RUFBQTtJQUFBQSxFQUFBLEdBQUFGLENBQUE7RUFBQTtFQUFBLE9BRjdCRSxFQUU2QjtBQUFBO0FBSWpDLE9BQU8sU0FBQUMsY0FBQTtFQUFBLE9BQ0VkLFVBQVUsQ0FBQ0csaUJBQWlCLENBQUM7QUFBQSIsImlnbm9yZUxpc3QiOltdfQ==\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\cost-tracker.ts-140- * Saves the current session's costs to project config.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\cost-tracker.ts-141- * Call this before switching sessions to avoid losing accumulated costs.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\cost-tracker.ts-142- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\cost-tracker.ts:143:export function saveCurrentSessionCosts(fpsMetrics?: FpsMetrics): void {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\cost-tracker.ts-144-  saveCurrentProjectConfig(current => ({\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\cost-tracker.ts-145-    ...current,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\cost-tracker.ts-146-    lastCost: getTotalCostUSD(),\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\analytics\\metadata.ts-454-/**\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\analytics\\metadata.ts-455- * Process metrics included with all analytics events.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\analytics\\metadata.ts-456- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\analytics\\metadata.ts:457:export type ProcessMetrics = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\analytics\\metadata.ts-458-  uptime: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\analytics\\metadata.ts-459-  rss: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\analytics\\metadata.ts-460-  heapTotal: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-125- * The caller (bigqueryExporter) tolerates stale reads — a missed export or\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-126- * an extra one during the 24h window is acceptable.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-127- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts:128:export async function checkMetricsEnabled(): Promise<MetricsStatus> {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-129-  // Service key OAuth sessions lack user:profile scope → would 403.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-130-  // API key users (non-subscribers) fall through and use x-api-key auth.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-131-  // This check runs before the disk read so we never persist auth-state-derived\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-154-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-155-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-156-// Export for testing purposes only\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts:157:export const _clearMetricsEnabledCacheForTesting = (): void => {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-158-  memoizedCheckMetrics.cache.clear()\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\services\\api\\metricsOptOut.ts-159-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\api.ts-476-/**\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\api.ts-477- * Log metrics about context and system prompt size\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\api.ts-478- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\api.ts:479:export async function logContextMetrics(\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\api.ts-480-  mcpConfigs: Record<string, ScopedMcpServerConfig>,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\api.ts-481-  toolPermissionContext: ToolPermissionContext,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\api.ts-482-): Promise<void> {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\contextAnalysis.ts-192-  map.set(key, (map.get(key) || 0) + value)\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\contextAnalysis.ts-193-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\contextAnalysis.ts-194-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\contextAnalysis.ts:195:export function tokenStatsToStatsigMetrics(\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\contextAnalysis.ts-196-  stats: TokenStats,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\contextAnalysis.ts-197-): Record<string, number> {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\contextAnalysis.ts-198-  const metrics: Record<string, number> = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\fpsTracker.ts:1:export type FpsMetrics = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\fpsTracker.ts-2-  averageFps: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\fpsTracker.ts-3-  low1PctFps: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\fpsTracker.ts-4-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\messages.ts-4480-  }\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\messages.ts-4481-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\messages.ts-4482-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\messages.ts:4483:export function createApiMetricsMessage(metrics: {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\messages.ts-4484-  ttftMs: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\messages.ts-4485-  otps: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\messages.ts-4486-  isP50?: boolean\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\telemetry\\bigqueryExporter.ts-37-  metrics: Metric[]\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\telemetry\\bigqueryExporter.ts-38-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\telemetry\\bigqueryExporter.ts-39-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\telemetry\\bigqueryExporter.ts:40:export class BigQueryMetricsExporter implements PushMetricExporter {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\telemetry\\bigqueryExporter.ts-41-  private readonly endpoint: string\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\telemetry\\bigqueryExporter.ts-42-  private readonly timeout: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\telemetry\\bigqueryExporter.ts-43-  private pendingExports: Promise<void>[] = []\n\n[Results capped at 20 matches]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"max_results\": 30, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\", \"pattern\": \"export interface Tool\"}",
+                "id": "call_function_n1ei3wauveq5_1",
+                "name": "grep"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_n1ei3wauveq5_1",
+            "output": "C:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\FilePermissionDialog\\useFilePermissionDialog.ts-20-  type PermissionHandlerParams,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\FilePermissionDialog\\useFilePermissionDialog.ts-21-} from './usePermissionHandler.js'\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\FilePermissionDialog\\useFilePermissionDialog.ts-22-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\FilePermissionDialog\\useFilePermissionDialog.ts:23:export interface ToolInput {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\FilePermissionDialog\\useFilePermissionDialog.ts-24-  [key: string]: unknown\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\FilePermissionDialog\\useFilePermissionDialog.ts-25-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\FilePermissionDialog\\useFilePermissionDialog.ts-26-",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\", \"pattern\": \"^export type Tool\"}",
+                "id": "call_function_0g6y7ylssz00_1",
+                "name": "grep"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_0g6y7ylssz00_1",
+            "output": "C:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionPrompt.tsx-16-  };\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionPrompt.tsx-17-  keybinding?: KeybindingAction;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionPrompt.tsx-18-};\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionPrompt.tsx:19:export type ToolAnalyticsContext = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionPrompt.tsx-20-  toolName: string;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionPrompt.tsx-21-  isMcp: boolean;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionPrompt.tsx-22-};\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionRequest.tsx-100-   */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionRequest.tsx-101-  setStickyFooter?: (jsx: React.ReactNode | null) => void;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionRequest.tsx-102-};\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionRequest.tsx:103:export type ToolUseConfirm<Input extends AnyObject = AnyObject> = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionRequest.tsx-104-  assistantMessage: AssistantMessage;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionRequest.tsx-105-  tool: Tool<Input>;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\components\\permissions\\PermissionRequest.tsx-106-  description: string;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tasks\\LocalAgentTask\\LocalAgentTask.tsx-20-import { PANEL_GRACE_MS, registerTask, updateTaskState } from '../../utils/task/framework.js';\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tasks\\LocalAgentTask\\LocalAgentTask.tsx-21-import { emitTaskProgress } from '../../utils/task/sdkProgress.js';\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tasks\\LocalAgentTask\\LocalAgentTask.tsx-22-import type { TaskState } from '../types.js';\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tasks\\LocalAgentTask\\LocalAgentTask.tsx:23:export type ToolActivity = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tasks\\LocalAgentTask\\LocalAgentTask.tsx-24-  toolName: string;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tasks\\LocalAgentTask\\LocalAgentTask.tsx-25-  input: Record<string, unknown>;\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tasks\\LocalAgentTask\\LocalAgentTask.tsx-26-  /** Pre-computed activity description from the tool, e.g. \"Reading src/foo.ts\" */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-12-import type { CanUseToolFn } from './hooks/useCanUseTool.js'\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-13-import type { ThinkingConfig } from './utils/thinking.js'\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-14-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:15:export type ToolInputJSONSchema = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-16-  [x: string]: unknown\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-17-  type: 'object'\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-18-  properties?: {\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-120-export type { ToolPermissionRulesBySource }\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-121-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-122-// Apply DeepImmutable to the imported type\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:123:export type ToolPermissionContext = DeepImmutable<{\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-124-  mode: PermissionMode\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-125-  additionalWorkingDirectories: Map<string, AdditionalWorkingDirectory>\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-126-  alwaysAllowRules: ToolPermissionRulesBySource\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-155-  | { type: 'compact_start' }\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-156-  | { type: 'compact_end' }\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-157-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:158:export type ToolUseContext = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-159-  options: {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-160-    commands: Command[]\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-161-    debug: boolean\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-304-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-305-export type Progress = ToolProgressData | HookProgress\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-306-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:307:export type ToolProgress<P extends ToolProgressData> = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-308-  toolUseID: string\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-309-  data: P\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-310-}\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-318-  )\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-319-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-320-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:321:export type ToolResult<T> = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-322-  data: T\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-323-  newMessages?: (\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-324-    | UserMessage\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-335-  }\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-336-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-337-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:338:export type ToolCallProgress<P extends ToolProgressData = ToolProgressData> = (\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-339-  progress: ToolProgress<P>,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-340-) => void\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-341-\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-359-  return tools.find(t => toolMatchesName(t, name))\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-360-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-361-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:362:export type Tool<\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-363-  Input extends AnyObject = AnyObject,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-364-  Output = unknown,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-365-  P extends ToolProgressData = ToolProgressData,\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-698- * A collection of tools. Use this type instead of `Tool[]` to make it easier\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-699- * to track where tool sets are assembled, passed, and filtered across the codebase.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-700- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:701:export type Tools = readonly Tool[]\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-702-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-703-/**\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-704- * Methods that `buildTool` supplies a default for. A `ToolDef` may omit these;\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-718- * defaultable methods optional — `buildTool` fills them in so callers always\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-719- * see a complete `Tool`.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-720- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts:721:export type ToolDef<\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-722-  Input extends AnyObject = AnyObject,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-723-  Output = unknown,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\Tool.ts-724-  P extends ToolProgressData = ToolProgressData,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tools.ts-160- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tools.ts-161-export const TOOL_PRESETS = ['default'] as const\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tools.ts-162-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tools.ts:163:export type ToolPreset = (typeof TOOL_PRESETS)[number]\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tools.ts-164-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tools.ts-165-export function parseToolPreset(preset: string): ToolPreset | null {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\tools.ts-166-  const presetString = preset.toLowerCase()\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-416-/**\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-417- * Mapping of permission rules by their source\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-418- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts:419:export type ToolPermissionRulesBySource = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-420-  [T in PermissionRuleSource]?: string[]\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-421-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-422-\n--\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-424- * Context needed for permission checking in tools\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-425- * Note: Uses a simplified DeepImmutable approximation for this types-only file\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-426- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts:427:export type ToolPermissionContext = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-428-  readonly mode: PermissionMode\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-429-  readonly additionalWorkingDirectories: ReadonlyMap<\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\types\\permissions.ts-430-    string,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\gitDiff.ts-383-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\gitDiff.ts-384-const SINGLE_FILE_DIFF_TIMEOUT_MS = 3000\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\gitDiff.ts-385-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\gitDiff.ts:386:export type ToolUseDiff = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\gitDiff.ts-387-  filename: string\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\gitDiff.ts-388-  status: 'modified' | 'added'\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\gitDiff.ts-389-  additions: number\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\settings\\toolValidationConfig.ts-5- * Only add your tool here if it has special pattern requirements.\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\settings\\toolValidationConfig.ts-6- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\settings\\toolValidationConfig.ts-7-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\settings\\toolValidationConfig.ts:8:export type ToolValidationConfig = {\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\settings\\toolValidationConfig.ts-9-  /** Tools that accept file glob patterns (e.g., *.ts, src/**) */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\settings\\toolValidationConfig.ts-10-  filePatternTools: string[]\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\settings\\toolValidationConfig.ts-11-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolResultStorage.ts-478-  replacement: string\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolResultStorage.ts-479-}\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolResultStorage.ts-480-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolResultStorage.ts:481:export type ToolResultReplacementRecord = Extract<\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolResultStorage.ts-482-  ContentReplacementRecord,\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolResultStorage.ts-483-  { kind: 'tool-result' }\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolResultStorage.ts-484->\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolSearch.ts-158- *   - 'tst-auto': auto — tools deferred only when they exceed threshold\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolSearch.ts-159- *   - 'standard': tool search disabled — all tools exposed inline\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolSearch.ts-160- */\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolSearch.ts:161:export type ToolSearchMode = 'tst' | 'tst-auto' | 'standard'\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolSearch.ts-162-\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolSearch.ts-163-/**\nC:\\Users\\ClassTen\\cocacode\\claude_code_src-master\\src\\utils\\toolSearch.ts-164- * Determines the tool search mode from ENABLE_TOOL_SEARCH.\n\n[Results capped at 50 matches]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      },
+      {
+        "content": {
+          "AssistantWithToolCalls": {
+            "text": null,
+            "tool_calls": [
+              {
+                "arguments": "{\"max_results\": 5, \"path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\cocacode\\\\src\\\\main\\\\kotlin\\\\rj\\\\cocacode\\\\tools\", \"pattern\": \"^class.*Tool\"}",
+                "id": "call_function_ag603tb9tb57_1",
+                "name": "grep"
+              }
+            ]
+          }
+        },
+        "role": "Assistant"
+      },
+      {
+        "content": {
+          "ToolResult": {
+            "call_id": "call_function_ag603tb9tb57_1",
+            "output": "C:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\BashTool.kt-16- * - Background task support\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\BashTool.kt-17- * - Progress reporting\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\BashTool.kt-18- */\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\BashTool.kt:19:class BashToolImpl : Tool(\"Bash\", \"Execute shell commands\") {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\BashTool.kt-20-    \nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\BashTool.kt-21-    companion object {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\BashTool.kt-22-        // Commands categorized for UI display\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\EditTool.kt-3-import rj.cocacode.utils.FileUtils\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\EditTool.kt-4-import java.io.File\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\EditTool.kt-5-\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\EditTool.kt:6:class EditToolImpl : Tool(EditToolConstants.TOOL_NAME, EditToolConstants.TOOL_DESCRIPTION) {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\EditTool.kt-7-    \nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\EditTool.kt-8-    private val undoManager = UndoManager()\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\EditTool.kt-9-    private val readFileTimestamps = mutableMapOf<String, Long>()\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\GrepTool.kt-19- * - head_limit and offset pagination\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\GrepTool.kt-20- * - Multiline mode support\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\GrepTool.kt-21- */\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\GrepTool.kt:22:class GrepToolImpl : Tool(\"Grep\", \"Search file contents using ripgrep\") {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\GrepTool.kt-23-    \nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\GrepTool.kt-24-    companion object {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\GrepTool.kt-25-        // VCS directories to exclude from searches\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ReadTool.kt-2-\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ReadTool.kt-3-import java.io.File\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ReadTool.kt-4-\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ReadTool.kt:5:class ReadToolImpl : Tool(ReadToolConstants.TOOL_NAME, ReadToolConstants.TOOL_DESCRIPTION) {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ReadTool.kt-6-    \nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ReadTool.kt-7-    companion object {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ReadTool.kt-8-        private const val DEFAULT_MAX_SIZE_BYTES = 10_000_000L\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ToolRegistry.kt-47-    }\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ToolRegistry.kt-48-}\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ToolRegistry.kt-49-\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ToolRegistry.kt:50:class BashTool : Tool(\"Bash\", \"Execute shell commands\") {\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ToolRegistry.kt-51-    private val bashTool = BashToolImpl()\nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ToolRegistry.kt-52-    \nC:\\Users\\ClassTen\\cocacode\\cocacode\\src\\main\\kotlin\\rj\\cocacode\\tools\\ToolRegistry.kt-53-    override suspend fun execute(input: Map<String, Any>): ToolResult {\n\n[Results capped at 5 matches]",
+            "success": true
+          }
+        },
+        "role": "Tool"
+      }
+    ],
+    "tool_count": 11,
+    "tools": [
+      {
+        "description": "Execute a shell command. Use for: build, test, git, install deps.\nDo NOT use for: reading files (use read_file), searching (use grep), editing (use edit_file).\nDo NOT start servers or long-running processes — the user manages those.\nDefault timeout: 60s. Destructive commands require user confirmation.",
+        "name": "bash",
+        "parameters": {
+          "properties": {
+            "command": {
+              "description": "The bash command to execute",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Max wait seconds (default 60, max 300)",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "command"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Change the working directory. All subsequent file operations and bash commands will execute in the new directory.",
+        "name": "change_dir",
+        "parameters": {
+          "properties": {
+            "path": {
+              "description": "The directory path to change to. Can be absolute or relative to current working directory.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Replace text in a file. ALWAYS prefer this over write_file for existing files.\nTwo modes:\n1. Line mode: use start_line + end_line + new_string. Line numbers from read_file or grep output.\n2. Text mode: use old_string + new_string. old_string must match exactly.\nBoth modes work. Use whichever is faster — if grep already showed the code, edit directly.\nFor multiple changes in one file: make separate edit_file calls, one per region.",
+        "name": "edit_file",
+        "parameters": {
+          "properties": {
+            "end_line": {
+              "description": "Line mode: last line to replace (inclusive)",
+              "type": "integer"
+            },
+            "file_path": {
+              "description": "Path to the file to edit",
+              "type": "string"
+            },
+            "new_string": {
+              "description": "Replacement text. Use empty string to delete.",
+              "type": "string"
+            },
+            "old_string": {
+              "description": "Text mode: exact text to find and replace. Include enough context to be unique.",
+              "type": "string"
+            },
+            "replace_all": {
+              "description": "Replace ALL occurrences (default: first only). Only for text mode.",
+              "type": "boolean"
+            },
+            "start_line": {
+              "description": "Line mode: first line to replace (1-indexed, from read_file output)",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "file_path",
+            "new_string"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Find files by name pattern. Returns matching file paths.\nUse this when you need to find files by name or extension, NOT by content (use grep for content search).\nPattern examples:\n- All Rust files: \"**/*.rs\"\n- Vue files in views: \"src/views/**/*.vue\"\n- Specific filename anywhere: \"**/config.ts\"\n- All files in a folder: \"src/components/*\"\nCommon use cases:\n- Find all view/page files before deciding which to edit.\n- Find config or entry files in an unfamiliar project.\n- Check what files exist in a directory.",
+        "name": "glob",
+        "parameters": {
+          "properties": {
+            "path": {
+              "description": "Base directory (default: working directory)",
+              "type": "string"
+            },
+            "pattern": {
+              "description": "Glob pattern (e.g. **/*.rs, src/**/*.ts)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Search file contents for a pattern. Returns matching lines with surrounding context.\nUsage:\n- Use this to find where a function, variable, string, or UI element is defined or used.\n- Use this BEFORE editing when the user's request is ambiguous — find ALL candidates first.\n- Pattern is regex by default (case-insensitive unless uppercase is used).\n- Escape special regex chars: . → \\\\. , ( → \\\\( , [ → \\\\[\n- If regex fails, the tool automatically retries with literal string matching.\n- NEVER use bash grep/rg — always use this tool.\nExamples:\n- Find a function: {\"pattern\": \"def process_data\"}\n- Find a string with dots: {\"pattern\": \"console\\\\.log\"}\n- Find across alternatives: {\"pattern\": \"upload|上传\"}\n- Search specific directory: {\"pattern\": \"import\", \"path\": \"src/views\"}",
+        "name": "grep",
+        "parameters": {
+          "properties": {
+            "context": {
+              "description": "Lines of context around each match (default 3)",
+              "type": "integer"
+            },
+            "max_results": {
+              "description": "Max results to return (default 50)",
+              "type": "integer"
+            },
+            "path": {
+              "description": "Directory or file to search (default: working directory)",
+              "type": "string"
+            },
+            "pattern": {
+              "description": "Search pattern (regex by default). Escape dots/parens: console\\.log\\(",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "List files and directories as a tree structure. Skips noise directories (node_modules, .git, target, __pycache__, etc.).\nUse this to understand project structure or explore unfamiliar directories.\nFor finding specific files by name/extension, prefer glob instead.\nThe depth parameter controls how deep to recurse (default 2, max 5).",
+        "name": "list_directory",
+        "parameters": {
+          "properties": {
+            "depth": {
+              "description": "Max depth to recurse (default 2)",
+              "type": "integer"
+            },
+            "path": {
+              "description": "Directory to list (default: working directory)",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Read a file. Returns full content with line numbers.\nLarge files return a skeleton (structure overview) — use offset/limit to read sections.\nNEVER use bash (cat/head/tail) to read files.",
+        "name": "read_file",
+        "parameters": {
+          "properties": {
+            "file_path": {
+              "description": "Absolute path to the file to read",
+              "type": "string"
+            },
+            "limit": {
+              "description": "Max lines to read. Defaults to full file.",
+              "type": "integer"
+            },
+            "offset": {
+              "description": "Start line (1-based). Omit to read from beginning.",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "file_path"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Search and replace text across multiple files. Replaces ALL occurrences in ALL matching files.\nWhen to use:\n- Rename a CSS class, variable, or import across the entire project\n- Change colors, sizes, or other repeated values in bulk\n- Migrate API endpoints, config keys, or string literals\n- Any change that affects many files with the same pattern\nWhen NOT to use:\n- Editing a single file: use edit_file instead\n- Complex structural refactoring: use edit_file per file\nExamples:\n- Change color: {\"search\": \"bg-blue-600\", \"replace\": \"bg-violet-600\", \"glob\": \"*.vue\"}\n- Rename class: {\"search\": \"rounded-2xl\", \"replace\": \"rounded-lg\", \"glob\": \"*.vue\"}\n- Regex rename: {\"search\": \"bg-blue-(\\\\d+)\", \"replace\": \"bg-violet-$1\", \"glob\": \"*.vue\", \"regex\": true}",
+        "name": "search_replace",
+        "parameters": {
+          "properties": {
+            "glob": {
+              "description": "File pattern to limit scope, e.g. \"*.vue\", \"*.css\" (default: all files)",
+              "type": "string"
+            },
+            "path": {
+              "description": "Directory to search in (default: working directory)",
+              "type": "string"
+            },
+            "regex": {
+              "description": "Use regex matching (default: false = literal)",
+              "type": "boolean"
+            },
+            "replace": {
+              "description": "Replacement text (use $1, $2 for regex captures)",
+              "type": "string"
+            },
+            "search": {
+              "description": "Text or regex pattern to find",
+              "type": "string"
+            }
+          },
+          "required": [
+            "search",
+            "replace"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Fetch a web page and return its content as clean text.\nUse after web_search to read a specific page (documentation, README, API reference).\nHTML is automatically converted to readable text.\nOnly http:// and https:// URLs are allowed; requests to localhost, private networks, and cloud metadata endpoints are blocked.\nExamples:\n- {\"url\": \"https://github.com/user/repo\"}\n- {\"url\": \"https://docs.rs/reqwest/latest/reqwest/\"}",
+        "name": "web_fetch",
+        "parameters": {
+          "properties": {
+            "max_chars": {
+              "description": "Max characters to return (default 20000)",
+              "type": "integer"
+            },
+            "url": {
+              "description": "Absolute http(s) URL to fetch",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Search the web for information. Returns titles, URLs, and snippets.\nUse when you need to find documentation, look up APIs, research libraries, or find information not available locally.\nExamples:\n- {\"query\": \"openclaw github\"}\n- {\"query\": \"tailwindcss v4 installation guide\"}\n- {\"query\": \"rust reqwest POST example\"}",
+        "name": "web_search",
+        "parameters": {
+          "properties": {
+            "max_results": {
+              "description": "Max results (default 8)",
+              "type": "integer"
+            },
+            "query": {
+              "description": "Search query",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Write content to a file. Creates new files or overwrites existing ones.\nUse this for: creating new files, or rewriting an entire file from scratch.\nFor small edits to existing files, prefer edit_file instead.\nParent directories are auto-created if they don't exist.",
+        "name": "write_file",
+        "parameters": {
+          "properties": {
+            "content": {
+              "description": "The full content to write",
+              "type": "string"
+            },
+            "file_path": {
+              "description": "Absolute path to the file",
+              "type": "string"
+            }
+          },
+          "required": [
+            "file_path",
+            "content"
+          ],
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "response": {
+    "duration_ms": 3355,
+    "text": "",
+    "tool_calls": [
+      {
+        "arguments": "{\"file_path\": \"C:\\\\Users\\\\ClassTen\\\\cocacode\\\\claude_code_src-master\\\\src\\\\Tool.ts\", \"limit\": 80, \"offset\": 1}",
+        "id": "call_function_kzsxnm0y6wg2_1",
+        "name": "read_file"
+      }
+    ]
+  },
+  "step": 27,
+  "timestamp": "2026-04-23_03-07-55_668"
+}

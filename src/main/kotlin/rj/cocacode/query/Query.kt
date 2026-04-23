@@ -8,7 +8,7 @@ import rj.cocacode.types.MessageType
 import rj.cocacode.types.Attachment
 import rj.cocacode.tools.Tool
 import rj.cocacode.tools.ToolRegistry
-import rj.cocacode.tools.ToolExecutionResult
+import rj.cocacode.types.ToolExecutionResult
 import rj.cocacode.config.FeatureFlags
 import rj.cocacode.config.ApiConfig
 import rj.cocacode.state.AppStateManager
@@ -16,10 +16,10 @@ import rj.cocacode.state.AppState
 import rj.cocacode.utils.ThinkingConfig
 import rj.cocacode.utils.TokenEstimator
 import rj.cocacode.utils.Logger
-import rj.cocacode.utils.Metrics
+import rj.cocacode.types.Metrics
 import rj.cocacode.services.api.ApiClient
-import rj.cocacode.services.api.ApiError
-import rj.cocacode.services.api.FallbackTriggeredError
+import rj.cocacode.types.ApiError
+import rj.cocacode.types.FallbackTriggeredError
 
 // Maximum recovery attempts for max_output_tokens errors
 private const val MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3

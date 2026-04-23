@@ -87,9 +87,9 @@ class ReadToolImpl : Tool(ReadToolConstants.TOOL_NAME, ReadToolConstants.TOOL_DE
                 metadata = mapOf(
                     "filePath" to absolutePath,
                     "totalLines" to totalLines,
-                    "startLine" to offset ?: 1,
+                    "startLine" to (offset ?: 1),
                     "requestedOffset" to offset
-                )
+                ) as Map<String, Any>
             )
         }
         

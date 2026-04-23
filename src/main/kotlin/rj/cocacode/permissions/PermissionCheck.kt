@@ -43,7 +43,9 @@ fun createPermissionRequestMessage(
         is PermissionDecisionReason.WorkingDirReason -> {
             decisionReason.reason
         }
-        is PermissionDecisionReason.SafetyCheckReason,
+        is PermissionDecisionReason.SafetyCheckReason -> {
+            decisionReason.reason
+        }
         is PermissionDecisionReason.OtherReason -> {
             decisionReason.reason
         }
@@ -304,9 +306,9 @@ fun syncPermissionRulesFromDisk(
     var context = toolPermissionContext
     
     val diskSources = listOf(
-        PermissionUpdateDestination.USER_SETTINGS,
-        PermissionUpdateDestination.PROJECT_SETTINGS,
-        PermissionUpdateDestination.LOCAL_SETTINGS
+        PermissionRuleSource.USER_SETTINGS,
+        PermissionRuleSource.PROJECT_SETTINGS,
+        PermissionRuleSource.LOCAL_SETTINGS
     )
     val behaviors = listOf(
         PermissionBehavior.ALLOW,

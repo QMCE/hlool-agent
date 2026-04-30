@@ -173,12 +173,6 @@ data class McpRequest(
     val params: Map<String, Any>? = null
 )
 
-interface McpTransport {
-    suspend fun connect()
-    suspend fun send(request: McpRequest): String?
-    suspend fun disconnect()
-}
-
 class StdioTransport(
     private val command: String,
     private val args: List<String>,
@@ -231,22 +225,24 @@ class StdioTransport(
 
     override suspend fun send(request: McpRequest): String? {
         if (closed || process == null || input == null) throw IllegalStateException("Not connected")
-        return try withContext(Dispatchers.IO) {
-            val json = com.google.gson.Gson().toJson(request)
-            input?.write((json + "\n").toByteArray(Charsets.UTF_8))
-            input?.flush()
-            LogManager.logDebug("StdioTransport: Sent - $json")
-            val response = output?.readLine()
-            if (response != null) {
-                LogManager.logDebug("StdioTransport: Received - $response")
-                response
-            } else {
-                LogManager.logError("StdioTransport: Timeout")
+        return withContext(Dispatchers.IO) {
+            try {
+                val json = com.google.gson.Gson().toJson(request)
+                input?.write((json + "\n").toByteArray(Charsets.UTF_8))
+                input?.flush()
+                LogManager.logDebug("StdioTransport: Sent - $json")
+                val response = output?.readLine()
+                if (response != null) {
+                    LogManager.logDebug("StdioTransport: Received - $response")
+                    response
+                } else {
+                    LogManager.logError("StdioTransport: Timeout")
+                    null
+                }
+            } catch (e: Exception) {
+                LogManager.logError("StdioTransport: Send failed - ${e.message}")
                 null
             }
-        } catch (e: Exception) {
-            LogManager.logError("StdioTransport: Send failed - ${e.message}")
-            null
         }
     }
 

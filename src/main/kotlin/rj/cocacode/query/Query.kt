@@ -20,6 +20,9 @@ import rj.cocacode.types.Metrics
 import rj.cocacode.services.api.ApiClient
 import rj.cocacode.types.ApiError
 import rj.cocacode.types.FallbackTriggeredError
+import rj.cocacode.state.AbortController
+import rj.cocacode.state.FileStateCache
+import rj.cocacode.types.Notification
 
 // Maximum recovery attempts for max_output_tokens errors
 private const val MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3

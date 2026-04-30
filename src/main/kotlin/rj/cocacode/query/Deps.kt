@@ -10,7 +10,22 @@ import rj.cocacode.services.compact.Compactor
 /**
  * CallModel dependency - model invocation with streaming support.
  */
-typealias CallModel = suspend (CallModelInput) -> Flow<Message>
+/**
+ * Input for model invocation.
+ */
+internal data class CallModelInput(
+    val messages: List<Map<String, Any>>,
+    val systemPrompt: String = "",
+    val options: CallModelOptions = CallModelOptions()
+)
+
+/**
+ * Options for model invocation.
+ */
+internal data class CallModelOptions(
+    val model: String = "claude-sonnet-4-20250514",
+    val maxOutputTokensOverride: Int? = null
+)
 
 /**
  * MicroCompact dependency - lightweight message compression before full autocompact.
@@ -18,9 +33,58 @@ typealias CallModel = suspend (CallModelInput) -> Flow<Message>
 typealias MicroCompact = suspend (MicroCompactInput) -> MicroCompactOutput
 
 /**
+ * Input for micro compact operation.
+ */
+internal data class MicroCompactInput(
+    val messages: List<Message>,
+    val options: Map<String, Any> = emptyMap()
+)
+
+/**
+ * Output from micro compact operation.
+ */
+internal data class MicroCompactOutput(
+    val messages: List<Message>,
+    val metadata: Map<String, Any> = emptyMap()
+)
+
+/**
  * AutoCompact dependency - context compaction when approaching token limits.
  */
 typealias AutoCompact = suspend (AutoCompactInput, QuerySource, AutoCompactTrackingState?, Int) -> AutoCompactResult
+
+/**
+ * Input for auto compact operation.
+ */
+internal data class AutoCompactInput(
+    val messages: List<Message>,
+    val currentTokens: Int,
+    val maxTokens: Int
+)
+
+/**
+ * Tracking state for auto compact.
+ */
+internal data class AutoCompactTrackingState(
+    val consecutiveFailures: Int = 0
+)
+
+/**
+ * Result from auto compact operation.
+ */
+internal data class AutoCompactResult(
+    val output: AutoCompactOutput?,
+    val consecutiveFailures: Int?
+)
+
+/**
+ * Output from auto compact operation.
+ */
+internal data class AutoCompactOutput(
+    val summaryMessages: List<Message>,
+    val preCompactTokenCount: Int,
+    val postCompactTokenCount: Int
+)
 
 /**
  * UuidGenerator - platform dependency for UUID generation.
@@ -28,10 +92,12 @@ typealias AutoCompact = suspend (AutoCompactInput, QuerySource, AutoCompactTrack
 typealias UuidGenerator = () -> String
 
 /**
+ * CallModel - model invocation with streaming support.
+ */
+typealias CallModel = suspend (CallModelInput) -> Flow<Message>
+
+/**
  * Query dependencies for dependency injection.
- * 
- * Following the TypeScript pattern: using `typeof fn` keeps signatures in sync
- * with the real implementations automatically.
  */
 data class QueryDeps(
     val callModel: CallModel,

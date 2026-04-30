@@ -8,7 +8,9 @@ data class Message(
     val type: MessageType,
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val attachments: List<Attachment> = emptyList()
+    val attachments: List<Attachment> = emptyList(),
+    val isError: Boolean = false,
+    val toolUseId: String? = null
 )
 
 @Serializable

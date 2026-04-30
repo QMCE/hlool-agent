@@ -146,7 +146,7 @@ class ToolsCommand : Command() {
         ui.print("")
         ui.print("Available tools:")
         ui.print("")
-        ToolRegistry.getAll().forEach { tool ->
+        ToolRegistry.all().forEach { tool ->
             ui.print("  ${tool.name.padEnd(16)} ${tool.description}")
         }
         ui.print("")

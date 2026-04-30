@@ -1,64 +1,43 @@
 package rj.cocacode.utils
 
-import org.slf4j.LoggerFactory
+import java.time.Instant
 
+/**
+ * Logger for application logging.
+ */
 object Logger {
-    private val logger = LoggerFactory.getLogger("CocaCode")
-    
-    fun info(message: String) = logger.info(message)
-    
-    fun warn(message: String) = logger.warn(message)
-    
-    fun error(message: String, throwable: Throwable? = null) {
-        if (throwable != null) logger.error(message, throwable)
-        else logger.error(message)
+    enum class Level {
+        DEBUG, INFO, WARN, ERROR
     }
     
-    fun debug(message: String) = logger.debug(message)
+    private var minLevel: Level = Level.INFO
     
-    fun trace(message: String) = logger.trace(message)
+    fun setLevel(level: Level) {
+        minLevel = level
+    }
+    
+    fun debug(message: String, vararg args: Any?) = log(Level.DEBUG, message, args)
+    fun info(message: String, vararg args: Any?) = log(Level.INFO, message, args)
+    fun warn(message: String, vararg args: Any?) = log(Level.WARN, message, args)
+    fun error(message: String, vararg args: Any?) = log(Level.ERROR, message, args)
+    
+    private fun log(level: Level, message: String, args: Array<out Any?>) {
+        if (level.ordinal >= minLevel.ordinal) {
+            val formatted = args.fold(message) { acc, arg -> acc.replaceFirst("{}", arg?.toString() ?: "null") }
+            println("[${Instant.now()}] [${level.name}] $formatted")
+        }
+    }
 }
 
+/**
+ * LogManager - alias for Logger compatibility.
+ */
 object LogManager {
-    private val inMemoryLogs = mutableListOf<LogEntry>()
-    private const val MAX_LOGS = 100
-    
-    data class LogEntry(
-        val level: LogLevel,
-        val message: String,
-        val timestamp: Long = System.currentTimeMillis()
-    )
-    
-    enum class LogLevel { DEBUG, INFO, WARN, ERROR }
-    
-    fun addLog(level: LogLevel, message: String) {
-        if (inMemoryLogs.size >= MAX_LOGS) {
-            inMemoryLogs.removeAt(0)
-        }
-        inMemoryLogs.add(LogEntry(level, message))
-    }
-    
-    fun getLogs(): List<LogEntry> = inMemoryLogs.toList()
-    
-    fun clearLogs() = inMemoryLogs.clear()
-    
-    fun logError(error: String) {
-        addLog(LogLevel.ERROR, error)
-        Logger.error(error)
-    }
-    
-    fun logInfo(message: String) {
-        addLog(LogLevel.INFO, message)
-        Logger.info(message)
-    }
-    
-    fun logWarn(message: String) {
-        addLog(LogLevel.WARN, message)
-        Logger.warn(message)
-    }
-    
-    fun logDebug(message: String) {
-        addLog(LogLevel.DEBUG, message)
-        Logger.debug(message)
+    fun logInfo(message: String) = Logger.info(message)
+    fun logDebug(message: String) = Logger.debug(message)
+    fun logWarn(message: String) = Logger.warn(message)
+    fun logError(message: String, throwable: Throwable? = null) {
+        Logger.error(message)
+        throwable?.printStackTrace()
     }
 }

@@ -85,8 +85,8 @@ class ExtensionContext(
         })
     }
     
-    fun getState(): Map<String, Any> = rj.cocacode.state.AppStateManager.getState().let {
-        mapOf(
+    fun getState(): Map<String, Any?> = rj.cocacode.state.AppStateManager.getState().let {
+        mapOf<String, Any?>(
             "sessionId" to it.sessionId,
             "model" to it.currentModel,
             "theme" to it.theme

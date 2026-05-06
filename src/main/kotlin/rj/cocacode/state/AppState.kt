@@ -12,7 +12,10 @@ data class AppState(
     val toolPermissionContext: ToolPermissionContext? = null,
     val isAuthenticated: Boolean = false,
     val sessionId: String? = null,
-    val permissionMode: PermissionMode = PermissionMode.DEFAULT
+    val permissionMode: PermissionMode = PermissionMode.DEFAULT,
+    val currentModel: String = "claude-sonnet-4-20250514",
+    val theme: String = "default",
+    val debugMode: Boolean = false
 )
 
 /**
@@ -39,6 +42,8 @@ data class ToolPermissionContext(
 object AppStateManager {
     private var _state: AppState = AppState()
     private val listeners = mutableListOf<(AppState) -> Unit>()
+    private val messages = mutableListOf<rj.cocacode.types.Message>()
+    private var thinking = false
     
     fun getState(): AppState = _state
     
@@ -59,11 +64,34 @@ object AppStateManager {
         listeners.remove(listener)
     }
     
+    fun addMessage(message: rj.cocacode.types.Message) {
+        messages.add(message)
+    }
+    
+    fun getMessages(): List<rj.cocacode.types.Message> = messages.toList()
+    
+    fun setThinking(value: Boolean) {
+        thinking = value
+        _state = _state.copy()
+        listeners.forEach { it(_state) }
+    }
+    
+    fun isThinking(): Boolean = thinking
+    
     /**
      * Set the current model.
      */
     fun setModel(model: String) {
-        // Update would happen here
+        _state = _state.copy(currentModel = model)
+        listeners.forEach { it(_state) }
+    }
+    
+    /**
+     * Set the theme.
+     */
+    fun setTheme(theme: String) {
+        _state = _state.copy(theme = theme)
+        listeners.forEach { it(_state) }
     }
     
     /**

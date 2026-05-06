@@ -26,8 +26,8 @@ class TaskScheduler(
         val id: String,
         val priority: Int,
         val block: suspend () -> Result<Any>,
-        val retries: Int = maxRetries,
-        val delay: Duration = baseDelay
+        val retries: Int = 3,
+        val taskDelay: Duration = 1.seconds
     ) : Comparable<Task> {
         override fun compareTo(other: Task): Int = this.priority.compareTo(other.priority)
     }
@@ -49,9 +49,11 @@ class TaskScheduler(
      * Schedules a task for execution.
      */
     fun schedule(task: Task) {
-        mutex.withLock {
-            queue.add(task)
-            if (!isRunning) start()
+        runBlocking {
+            mutex.withLock {
+                queue.add(task)
+                if (!isRunning) start()
+            }
         }
     }
 
@@ -73,7 +75,7 @@ class TaskScheduler(
      */
     private suspend fun executeTask(task: Task) {
         var remainingRetries = task.retries
-        var currentDelay = task.delay
+        var waitTime: kotlin.time.Duration = task.taskDelay
 
         while (remainingRetries >= 0) {
             try {
@@ -83,6 +85,13 @@ class TaskScheduler(
                         // Task completed successfully
                         return
                     }
+                    is Result.Failure -> {
+                        if (remainingRetries == 0) return
+                        remainingRetries--
+                        kotlinx.coroutines.delay(waitTime)
+                        waitTime *= 2
+                        continue
+                    }
                 }
             } catch (e: Exception) {
                 if (remainingRetries == 0) {
@@ -90,8 +99,8 @@ class TaskScheduler(
                     return
                 }
                 remainingRetries--
-                delay(currentDelay)
-                currentDelay *= 2 // Exponential backoff
+                kotlinx.coroutines.delay(waitTime)
+                waitTime *= 2 // Exponential backoff
             }
         }
     }
@@ -100,9 +109,11 @@ class TaskScheduler(
      * Cancels all pending tasks.
      */
     fun cancelAll() {
-        mutex.withLock {
-            isRunning = false
-            scope.cancel()
+        kotlinx.coroutines.runBlocking {
+            mutex.withLock {
+                isRunning = false
+                scope.cancel()
+            }
         }
     }
 

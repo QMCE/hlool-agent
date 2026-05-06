@@ -19,7 +19,7 @@ object TokenEstimator {
     fun estimateTokens(text: String): Int = text.length / CHARS_PER_TOKEN
     
     fun estimateTokensForMessages(messages: List<String>): Int {
-        return messages.sumOf { text -> this.estimateTokens(text) }
+        return messages.map { text -> this.estimateTokens(text) }.sum()
     }
     
     fun estimateFromUsage(usage: TokenUsage): Int {

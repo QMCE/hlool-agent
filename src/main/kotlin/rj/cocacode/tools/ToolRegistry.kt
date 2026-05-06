@@ -1,7 +1,5 @@
 package rj.cocacode.tools
 
-import rj.cocacode.types.Tool
-
 /**
  * ToolRegistry for managing available tools.
  */

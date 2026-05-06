@@ -7,12 +7,11 @@ import rj.cocacode.ui.UI
 import rj.cocacode.utils.ConfigManager
 import rj.cocacode.cli.Exit
 import rj.cocacode.tools.ToolRegistry
-import rj.cocacode.tools.BashTool
-import rj.cocacode.tools.ReadFileTool
-import rj.cocacode.tools.WriteFileTool
-import rj.cocacode.tools.EditFileTool
-import rj.cocacode.tools.GlobTool
-import rj.cocacode.tools.GrepTool
+import rj.cocacode.tools.BashToolImpl
+import rj.cocacode.tools.ReadToolImpl
+import rj.cocacode.tools.EditToolImpl
+import rj.cocacode.tools.GrepToolImpl
+import rj.cocacode.agents.SubAgentTool
 import kotlinx.coroutines.runBlocking
 
 class ReplLoop {
@@ -92,12 +91,11 @@ class ReplLoop {
 
 object Repl {
     fun registerTools() {
-        ToolRegistry.register(BashTool())
-        ToolRegistry.register(ReadFileTool())
-        ToolRegistry.register(WriteFileTool())
-        ToolRegistry.register(EditFileTool())
-        ToolRegistry.register(GlobTool())
-        ToolRegistry.register(GrepTool())
+        ToolRegistry.register(BashToolImpl())
+        ToolRegistry.register(ReadToolImpl())
+        ToolRegistry.register(EditToolImpl())
+        ToolRegistry.register(GrepToolImpl())
+        ToolRegistry.register(SubAgentTool())
     }
     
     fun start() {

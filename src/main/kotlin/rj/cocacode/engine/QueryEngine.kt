@@ -115,7 +115,7 @@ sealed class QueryResponse {
 
 data class ModelResponse(
     val content: String,
-    val usage: rj.cocacode.utils.TokenEstimator.TokenUsage?
+    val usage: rj.cocacode.utils.TokenUsage?
 )
 
 object QueryEngineManager {

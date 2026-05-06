@@ -22,7 +22,7 @@ object Analytics {
             name = name,
             properties = properties,
             timestamp = System.currentTimeMillis(),
-            sessionId = rj.cocacode.state.AppStateManager.getState().sessionId
+            sessionId = rj.cocacode.state.AppStateManager.getState().sessionId ?: "unknown"
         )
         
         eventQueue.offer(event)

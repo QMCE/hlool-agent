@@ -211,7 +211,7 @@ class StdioTransport(
         scope.launch {
             try {
                 error?.let { r ->
-                    var line: String?
+                    var line: String? = null
                     while (!closed && r.readLine().also { line = it } != null) {
                         line?.takeIf { it.isNotEmpty() }?.let {
                             stderrBuffer.appendLine(it)

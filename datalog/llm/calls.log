@@ -1,5 +1,0 @@
-2026-04-24_04-39-45_628  big-pickle  step=0  msgs=2/1567tok  →  4565ms  tools=3 [bash, read_file, read_file]
-2026-04-24_04-40-08_078  big-pickle  step=0  msgs=7/1833tok  →  2144ms  tools=1 [bash]
-2026-04-24_04-40-10_572  big-pickle  step=0  msgs=9/2009tok  →  2638ms  tools=2 [bash, bash]
-2026-04-24_04-40-13_722  big-pickle  step=0  msgs=12/2181tok  →  2631ms  tools=1 [bash]
-2026-04-24_04-40-16_549  big-pickle  step=0  msgs=15/2377tok  →  4414ms  tools=1 [bash]

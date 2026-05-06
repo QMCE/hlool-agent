@@ -10,7 +10,8 @@ data class Message(
     val timestamp: Long = System.currentTimeMillis(),
     val attachments: List<Attachment> = emptyList(),
     val isError: Boolean = false,
-    val toolUseId: String? = null
+    val toolUseId: String? = null,
+    val apiError: String? = null
 )
 
 @Serializable
@@ -19,7 +20,8 @@ enum class MessageType {
     ASSISTANT,
     SYSTEM,
     TOOL,
-    TOOL_RESULT
+    TOOL_RESULT,
+    ATTACHMENT
 }
 
 @Serializable

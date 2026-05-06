@@ -27,10 +27,28 @@ import rj.cocacode.types.Notification
 // Maximum recovery attempts for max_output_tokens errors
 private const val MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3
 
+const val ATTACHMENT = "attachment"
+
+/**
+ * Dependencies for the query function.
+ */
+internal class QueryDeps(
+    val productionDeps: Boolean = false,
+    val uuid: () -> String = { generateUuid() },
+    val microcompact: suspend (MicroCompactInput) -> MicroCompactOutput = { MicroCompactOutput(it.messages) },
+    val autocompact: suspend (AutoCompactInput, QuerySource, AutoCompactTrackingState?, Int) -> Pair<AutoCompactOutput?, Int?> = { _, _, _, _ -> Pair(null, null) },
+    val callModel: suspend (CallModelInput) -> Flow<Message> = { flow {} },
+    val originalModel: String? = null,
+    val isWithheldPromptTooLong: (List<Message>) -> Boolean = { false },
+    val isWithheldMediaSizeError: (List<Message>) -> Boolean = { false }
+)
+
+internal fun productionDeps(): QueryDeps = QueryDeps(productionDeps = true)
+
 /**
  * Query parameters for the main query loop.
  */
-data class QueryParams(
+internal data class QueryParams(
     val messages: List<Message>,
     val systemPrompt: String,
     val userContext: Map<String, String>,
@@ -271,7 +289,7 @@ fun yieldMissingToolResultBlocks(
     errorMessage: String
 ): Flow<Message> = flow {
     for (assistantMessage in assistantMessages) {
-        val toolUseBlocks = assistantMessage.contentBlocks.filter { it.type == "tool_use" }
+        val toolUseBlocks = assistantMessage.contentBlocks.filter { (it as? ToolUseBlock) != null }
         for (toolUse in toolUseBlocks) {
             val resultMessage = Message(
                 id = generateUuid(),
@@ -296,7 +314,7 @@ fun yieldMissingToolResultBlocks(
  * - Post-sampling hook execution
  * - Memory and skill prefetch
  */
-suspend fun query(params: QueryParams): Flow<Any> = flow {
+internal suspend fun query(params: QueryParams): Flow<Any> = flow {
     val consumedCommandUuids = mutableListOf<String>()
     
     // Run the main query loop
@@ -315,7 +333,7 @@ suspend fun query(params: QueryParams): Flow<Any> = flow {
 /**
  * Main query loop - handles multi-turn conversation with tool execution.
  */
-suspend fun queryLoop(
+internal suspend fun queryLoop(
     params: QueryParams,
     consumedCommandUuids: MutableList<String>
 ): Flow<Any> = flow {
@@ -500,7 +518,7 @@ suspend fun queryLoop(
         
         // Check for blocking limit (only when auto-compact is OFF)
         val collapseOwnsIt = FeatureFlags.isEnabled("CONTEXT_COLLAPSE") && isAutoCompactEnabled()
-        if (!compactionResult && 
+        if (compactionResult == null && 
             querySource != QuerySource.COMPACT && 
             querySource != QuerySource.SESSION_MEMORY &&
             !isReactiveCompactEnabled() &&
@@ -590,7 +608,7 @@ suspend fun queryLoop(
                         assistantMessages.add(message)
                         
                         // Extract tool use blocks
-                        val msgToolUseBlocks = message.contentBlocks.filter { it.type == "tool_use" }
+                        val msgToolUseBlocks = message.contentBlocks
                         if (msgToolUseBlocks.isNotEmpty()) {
                             toolUseBlocks.addAll(msgToolUseBlocks)
                             needsFollowUp = true
@@ -617,6 +635,7 @@ suspend fun queryLoop(
             } catch (innerError: Throwable) {
                 if (innerError is FallbackTriggeredError && fallbackModel != null) {
                     // Fallback was triggered - switch model and retry
+                    val originalModel = currentModel
                     currentModel = fallbackModel
                     attemptWithFallback = true
                     
@@ -639,7 +658,7 @@ suspend fun queryLoop(
                     
                     // Log fallback event
                     logEvent("tengu_model_fallback_triggered", mapOf(
-                        "original_model" to innerError.originalModel,
+                        "original_model" to originalModel,
                         "fallback_model" to fallbackModel
                     ))
                     
@@ -732,7 +751,7 @@ suspend fun queryLoop(
                         systemPrompt = systemPrompt,
                         userContext = userContext,
                         systemContext = systemContext,
-                        toolUseContext = toolUseContext,
+                        toolUseContext = toolUseContext.options.thinkingConfig,
                         forkContextMessages = messagesForQuery
                     )
                 )
@@ -810,9 +829,9 @@ suspend fun queryLoop(
                 systemPrompt,
                 userContext,
                 systemContext,
-                toolUseContext,
+                toolUseContext.toStopHookToolUseContext(),
                 querySource,
-                stopHookActive
+                stopHookActive ?: false
             )
             
             if (stopHookResult.preventContinuation) {
@@ -971,8 +990,8 @@ suspend fun queryLoop(
         
         // Refresh tools between turns
         if (updatedToolUseContext.options.refreshTools != null) {
-            val refreshedTools = updatedToolUseContext.options.refreshTools()
-            if (refreshedTools != updatedToolUseContext.options.tools) {
+            val refreshedTools = updatedToolUseContext.options.refreshTools?.invoke()
+            if (refreshedTools != null && refreshedTools != updatedToolUseContext.options.tools) {
                 updatedToolUseContext = updatedToolUseContext.copy(
                     options = updatedToolUseContext.options.copy(tools = refreshedTools)
                 )
@@ -1017,7 +1036,7 @@ class StreamingToolExecutor(
     private val pendingTools = mutableListOf<ToolUseBlock>()
     private val completedResults = mutableListOf<ToolExecutionUpdate>()
     
-    fun addTool(toolBlock: ToolUseBlock, assistantMessage: Message) {
+    internal fun addTool(toolBlock: ToolUseBlock, assistantMessage: Message) {
         pendingTools.add(toolBlock)
     }
     
@@ -1094,29 +1113,28 @@ private data class SnipResult(val messages: List<Message>, val tokensFreed: Int,
 
 private fun applySnipCompact(messages: List<Message>): SnipResult = SnipResult(messages, 0, null)
 
-private data class MicroCompactInput(
+internal data class MicroCompactInput(
     val messages: List<Message>,
     val toolUseContext: QueryToolUseContext,
     val querySource: QuerySource
 )
 
-private data class MicroCompactOutput(
+internal data class MicroCompactOutput(
     val messages: List<Message>,
     val compactionInfo: CompactionInfo? = null
 )
 
-private data class CompactionInfo(
+internal data class CompactionInfo(
     val pendingCacheEdits: PendingCacheEdits? = null
 )
 
-private data class PendingCacheEdits(
+internal data class PendingCacheEdits(
     val baselineCacheDeletedTokens: Int,
     val trigger: String,
     val deletedToolIds: List<String>
 )
 
-private fun MicroCompact.invoke(input: MicroCompactInput): MicroCompactOutput = 
-    MicroCompactOutput(input.messages)
+// MicroCompact, CallModel, AutoCompact are provided via QueryDeps
 
 private fun applyContextCollapse(
     messages: List<Message>,
@@ -1124,8 +1142,8 @@ private fun applyContextCollapse(
     querySource: QuerySource
 ): List<Message> = messages
 
-private data class CallModelInput(
-    val messages: List<Map<String, Any>>,
+internal data class CallModelInput(
+    val messages: List<Message>,
     val systemPrompt: String,
     val thinkingConfig: ThinkingConfig,
     val tools: List<Tool>,
@@ -1133,7 +1151,7 @@ private data class CallModelInput(
     val options: CallModelOptions
 )
 
-private data class CallModelOptions(
+internal data class CallModelOptions(
     val model: String,
     val fallbackModel: String? = null,
     val onStreamingFallback: (() -> Unit)? = null,
@@ -1147,13 +1165,11 @@ private data class CallModelOptions(
     val taskBudget: TaskBudgetInput? = null
 )
 
-private data class TaskBudgetInput(val total: Int, val remaining: Int?)
+internal data class TaskBudgetInput(val total: Int, val remaining: Int?)
 
-private fun CallModel.invoke(input: CallModelInput): Flow<Message> = flow {
-    // Placeholder - actual implementation would call the API
-}
+// Placeholder - CallModel provided via QueryDeps
 
-private data class AutoCompactInput(
+internal data class AutoCompactInput(
     val messages: List<Message>,
     val toolUseContext: QueryToolUseContext,
     val systemPrompt: String,
@@ -1162,7 +1178,7 @@ private data class AutoCompactInput(
     val forkContextMessages: List<Message>
 )
 
-private data class AutoCompactOutput(
+internal data class AutoCompactOutput(
     val summaryMessages: List<Message> = emptyList(),
     val attachments: List<Message> = emptyList(),
     val hookResults: List<Message> = emptyList(),
@@ -1172,19 +1188,14 @@ private data class AutoCompactOutput(
     val compactionUsage: TokenUsage? = null
 )
 
-private data class TokenUsage(
+internal data class TokenUsage(
     val input_tokens: Int,
     val output_tokens: Int,
     val cache_read_input_tokens: Int = 0,
     val cache_creation_input_tokens: Int = 0
 )
 
-private fun AutoCompact.invoke(
-    input: AutoCompactInput,
-    querySource: QuerySource,
-    tracking: AutoCompactTrackingState?,
-    snipTokensFreed: Int
-): Pair<AutoCompactOutput?, Int?> = Pair(null, null)
+// Placeholder - AutoCompact provided via QueryDeps
 
 private fun buildPostCompactMessages(result: AutoCompactOutput): List<Message> = 
     result.summaryMessages + result.attachments + result.hookResults
@@ -1201,7 +1212,12 @@ private fun isReactiveCompactEnabled(): Boolean = FeatureFlags.isEnabled("REACTI
 
 private fun isMediaRecoveryEnabled(): Boolean = FeatureFlags.isEnabled("REACTIVE_COMPACT")
 
-private fun getReactiveCompact(): Any? = null
+private class ReactiveCompactApi {
+    fun isWithheldPromptTooLong(msg: Message): Boolean = false
+    fun isWithheldMediaSizeError(msg: Message): Boolean = false
+}
+
+private fun getReactiveCompact(): ReactiveCompactApi? = null
 
 private fun isWithheldMediaSizeError(msg: Any): Boolean = false
 
@@ -1227,7 +1243,7 @@ private data class ReactiveCompactResult(
 private fun buildPostCompactMessagesFromReactive(result: ReactiveCompactResult): List<Message> =
     result.summaryMessages + result.attachments + result.hookResults
 
-private fun prependUserContext(messages: List<Map<String, Any>>, userContext: Map<String, String>): List<Map<String, Any>> =
+private fun prependUserContext(messages: List<Message>, userContext: Map<String, String>): List<Message> =
     messages
 
 private fun getRuntimeMainLoopModel(permissionMode: String, mainLoopModel: String, exceeds200kTokens: Boolean): String = mainLoopModel
@@ -1240,14 +1256,14 @@ private fun hasOutputTokensEnv(): Boolean = System.getenv("COCACODE_MAX_OUTPUT_T
 
 private fun executeStopFailureHooks(message: Message?, toolUseContext: QueryToolUseContext) {}
 
-private fun createApiErrorMessage(content: String, error: String): Message = Message(
+internal fun createApiErrorMessage(content: String, error: String): Message = Message(
     id = generateUuid(),
     type = MessageType.ASSISTANT,
     content = content,
     apiError = error
 )
 
-private fun createUserMessage(content: String, isMeta: Boolean = false): Message = Message(
+internal fun createUserMessage(content: String, isMeta: Boolean = false): Message = Message(
     id = generateUuid(),
     type = MessageType.USER,
     content = content
@@ -1288,23 +1304,15 @@ private fun runTools(
     }
 }
 
-private data class ToolUseBlock(
+internal data class ToolUseBlock(
     val id: String,
     val name: String,
     val input: Map<String, Any>
 )
 
-private val Message.contentBlocks: List<ContentBlock>
+private val Message.contentBlocks: List<ToolUseBlock>
     get() = emptyList()
-
-private data class ContentBlock(
-    val type: String,
-    val id: String = "",
-    val name: String = "",
-    val input: Map<String, Any> = emptyMap(),
-    val text: String = "",
-    val content: String = ""
-)
+// ContentBlock removed - using ToolUseBlock directly
 
 private var Message.attachmentType: String?
     get() = null
@@ -1369,3 +1377,22 @@ private fun incrementBudgetContinuationCount() {}
 
 private val Message.type: MessageType
     get() = MessageType.ASSISTANT
+
+private fun QueryToolUseContext.toStopHookToolUseContext(): StopHookToolUseContext {
+    val self = this
+    return object : StopHookToolUseContext {
+        override fun getAppState(): StopHookAppState {
+            val appState = self.getAppState()
+            return StopHookAppState(
+                toolPermissionContext = StopHookToolPermissionContext(
+                    mode = appState.permissionMode.name
+                )
+            )
+        }
+        override fun appendSystemMessage(message: String) {
+            // No-op: system messages are handled via the messages list
+        }
+        override val isMainAgent: Boolean
+            get() = self.agentId == null
+    }
+}

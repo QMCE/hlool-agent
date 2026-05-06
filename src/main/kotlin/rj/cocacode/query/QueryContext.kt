@@ -88,7 +88,7 @@ data class CacheSafeParams(
 
 private fun getUserContext(): Map<String, String> {
     return mapOf(
-        "sessionId" to AppStateManager.getState().sessionId
+        "sessionId" to (AppStateManager.getState().sessionId ?: "")
     )
 }
 

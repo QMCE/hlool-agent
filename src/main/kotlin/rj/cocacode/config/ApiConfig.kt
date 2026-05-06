@@ -11,6 +11,14 @@ data class ApiConfig(
     val timeout: Long = 60000
 ) {
     companion object {
+        var default: ApiConfig = ApiConfig()
+            private set
+        
+        val model: String get() = default.model
+        val apiKey: String get() = default.apiKey
+        val baseUrl: String get() = default.baseUrl
+        val maxTokens: Int get() = default.maxTokens
+        
         fun reload() {
             // Reload from config file
         }

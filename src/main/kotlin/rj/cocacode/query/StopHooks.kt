@@ -43,17 +43,7 @@ fun getTaskCompletedHookMessage(blockingError: String): String = "TaskCompleted 
 
 fun getTeammateIdleHookMessage(blockingError: String): String = "TeammateIdle hook blocked: $blockingError"
 
-fun createUserMessage(content: String, isMeta: Boolean = false): Message = Message(
-    id = generateUuid(),
-    type = MessageType.USER,
-    content = content
-)
-
-fun createSystemMessage(content: String, level: String = "info"): Message = Message(
-    id = generateUuid(),
-    type = MessageType.SYSTEM,
-    content = content
-)
+// createUserMessage and createSystemMessage are defined in Query.kt
 
 fun createAttachmentMessage(
     type: String,
@@ -85,11 +75,7 @@ fun createAttachmentMessage(
     )
 )
 
-fun createUserInterruptionMessage(toolUse: Boolean = true): Message = Message(
-    id = generateUuid(),
-    type = MessageType.USER,
-    content = if (toolUse) "Tools interrupted" else "User interrupted"
-)
+// createUserInterruptionMessage is defined in Query.kt
 
 fun createStopHookSummaryMessage(
     hookCount: Int,
@@ -162,13 +148,6 @@ object TaskList {
         val index = tasks.indexOfFirst { it.id == taskId }
         if (index >= 0) { tasks[index] = tasks[index].copy(status = status) }
     }
-}
-
-enum class QuerySource {
-    REPL_MAIN_THREAD,
-    SDK,
-    SUBAGENT,
-    BACKGROUND
 }
 
 interface StopHookToolUseContext {

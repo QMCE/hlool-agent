@@ -23,10 +23,10 @@ object SettingsConfig {
                 File(configDir, "settings.json").absolutePath
             }
             SettingsSource.PROJECT -> {
-                File(projectDir, ".claude/settings.json").absolutePath
-            }
-            SettingsSource.LOCAL -> {
-                File(projectDir, ".claude/settings.local.json").absolutePath
+                    File(projectDir, ".cocacode/settings.json").absolutePath
+                }
+                SettingsSource.LOCAL -> {
+                    File(projectDir, ".cocacode/settings.local.json").absolutePath
             }
             SettingsSource.FLAG -> null
             SettingsSource.POLICY -> {

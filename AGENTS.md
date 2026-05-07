@@ -35,7 +35,7 @@
 - User settings: `~/.cocacode/settings.json`
 - Project settings: `{project}/.cocacode/settings.json`
 
-Environment variables: Use `COCCACODE_` prefix (fallback to `ANTHROPIC_` for compatibility).
+Environment variables: Use `COCACODE_` prefix (fallback to `COCA_` for compatibility).
 
 ## Reference Source
 

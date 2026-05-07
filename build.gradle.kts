@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "rj.cocacode"
-version = "0.3.0"
+version = "0.4.0"
 
 dependencies {
     // Coroutines
@@ -62,3 +62,8 @@ tasks.named<Test>("test") {
     useJUnit()
 }
 
+tasks.named<JavaExec>("run") {
+    if (project.hasProperty("appArgs")) {
+        args = (project.property("appArgs") as String).split(" ")
+    }
+}

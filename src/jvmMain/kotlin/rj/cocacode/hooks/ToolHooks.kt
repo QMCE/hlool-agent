@@ -1,6 +1,7 @@
 package rj.cocacode.hooks
 
 import kotlinx.coroutines.*
+import kotlinx.serialization.json.*
 import rj.cocacode.utils.Logger
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -39,7 +40,7 @@ suspend fun executeToolHooks(
                     cwd = cwd,
                     permission_mode = permissionMode,
                     tool_name = toolName,
-                    tool_input = toolInput.mapValues { it.value }
+                    tool_input = toolInput.toJsonObject()
                 )
                 val callbackResult = HookRegistry.executeCallbacks(event, input)
                 result.addCallbackResults(callbackResult)
@@ -430,3 +431,21 @@ suspend fun runPostToolUseFailureHooks(
     permissionMode = permissionMode,
     abortSignal = abortSignal
 )
+
+/** Convert a Map<String, Any?> to JsonObject for serialization-friendly hook input. */
+fun Map<String, Any?>.toJsonObject(): JsonObject {
+    fun Any?.toJsonElement(): JsonElement = when (this) {
+        null -> JsonNull
+        is Number -> JsonPrimitive(this)
+        is String -> JsonPrimitive(this)
+        is Boolean -> JsonPrimitive(this)
+        is Map<*, *> -> JsonObject(
+            @Suppress("UNCHECKED_CAST")
+            (this as Map<String, Any?>).mapValues { it.value.toJsonElement() }
+        )
+        is Iterable<*> -> JsonArray(this.map { it.toJsonElement() })
+        is Array<*> -> JsonArray(this.map { it.toJsonElement() })
+        else -> JsonPrimitive(this.toString())
+    }
+    return JsonObject(mapValues { it.value.toJsonElement() })
+}

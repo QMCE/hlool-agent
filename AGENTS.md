@@ -36,7 +36,3 @@
 - Project settings: `{project}/.cocacode/settings.json`
 
 Environment variables: Use `COCACODE_` prefix (fallback to `COCA_` for compatibility).
-
-## Reference Source
-
-Claude Code TypeScript source at: `../claude_code_src-master/src/` - use for copying missing logic.

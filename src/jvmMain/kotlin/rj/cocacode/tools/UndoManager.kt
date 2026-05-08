@@ -1,5 +1,6 @@
 package rj.cocacode.tools
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 /**
@@ -117,6 +118,7 @@ data class EditHistoryEntry(
     val filePath: String,
     val oldContent: String,
     val newContent: String,
+    @Contextual
     val undoData: Map<String, Any> = emptyMap(),
     val timestamp: Long = System.currentTimeMillis()
 )

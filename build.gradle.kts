@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform") version "2.3.20"
+    kotlin("plugin.serialization") version "2.3.20"
 }
 
 group = "rj.cocacode"
@@ -13,14 +14,20 @@ kotlin {
             }
         }
     }
-    mingwX64()
+    mingwX64() {
+        binaries {
+            executable {
+                baseName = "cocacode"
+            }
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0")
                 implementation("io.ktor:ktor-client-core:2.3.13")
                 implementation("io.ktor:ktor-client-content-negotiation:2.3.13")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.13")
@@ -65,10 +72,25 @@ kotlin {
     }
 }
 
-tasks.named<Jar>("jvmJar") {
+// Create a fat JAR with all dependencies bundled
+val jvmFatJar = tasks.register<Jar>("jvmFatJar") {
+    archiveFileName.set("cocacode-${version}.jar")
+    dependsOn(tasks.named("jvmJar"))
+    val jvmJarTask = tasks.named("jvmJar")
+    from(jvmJarTask.map { zipTree(it.outputs.files.singleFile) })
+    from({
+        configurations.findByName("jvmRuntimeClasspath")?.map { 
+            if (it.isDirectory()) it else zipTree(it) 
+        } ?: emptyList()
+    })
     manifest {
-        attributes["Main-Class"] = "rj.cocacode.MainKt"
+        attributes("Main-Class" to "rj.cocacode.MainKt")
     }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named("build") {
+    dependsOn(jvmFatJar)
 }
 
 tasks.named<Test>("jvmTest") {

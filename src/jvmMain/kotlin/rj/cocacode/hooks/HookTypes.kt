@@ -1,6 +1,8 @@
 package rj.cocacode.hooks
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Hook event types supported by cocacode.
@@ -72,7 +74,7 @@ data class ToolHookInput(
     val agent_id: String? = null,
     val agent_type: String? = null,
     val tool_name: String,
-    val tool_input: Map<String, Any?>
+    val tool_input: JsonObject
 )
 
 /**

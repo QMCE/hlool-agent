@@ -1,12 +1,13 @@
 package rj.cocacode.services.remoteManagedSettings
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class RemoteManagedSettingsResponse(
     val uuid: String,
     val checksum: String,
-    val settings: Map<String, Any?> = emptyMap()
+    val settings: Map<String, JsonElement> = emptyMap()
 )
 
 data class RemoteManagedSettingsFetchResult(

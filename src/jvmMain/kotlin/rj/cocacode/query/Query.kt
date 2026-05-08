@@ -8,7 +8,6 @@ import rj.cocacode.types.MessageType
 import rj.cocacode.types.Attachment
 import rj.cocacode.tools.Tool
 import rj.cocacode.tools.ToolRegistry
-import rj.cocacode.types.ToolExecutionResult
 import rj.cocacode.config.FeatureFlags
 import rj.cocacode.config.ApiConfig
 import rj.cocacode.state.AppStateManager

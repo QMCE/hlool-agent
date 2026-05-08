@@ -11,6 +11,12 @@ import rj.cocacode.tools.BashToolImpl
 import rj.cocacode.tools.ReadToolImpl
 import rj.cocacode.tools.EditToolImpl
 import rj.cocacode.tools.GrepToolImpl
+import rj.cocacode.tools.GlobToolImpl
+import rj.cocacode.tools.WriteToolImpl
+import rj.cocacode.tools.TaskCreateToolImpl
+import rj.cocacode.tools.TaskListToolImpl
+import rj.cocacode.tools.TaskOutputToolImpl
+import rj.cocacode.tools.TaskStopToolImpl
 import rj.cocacode.agents.SubAgentTool
 import kotlinx.coroutines.runBlocking
 
@@ -96,6 +102,12 @@ object Repl {
         ToolRegistry.register(EditToolImpl())
         ToolRegistry.register(GrepToolImpl())
         ToolRegistry.register(SubAgentTool())
+        ToolRegistry.register(GlobToolImpl())
+        ToolRegistry.register(WriteToolImpl())
+        ToolRegistry.register(TaskCreateToolImpl())
+        ToolRegistry.register(TaskListToolImpl())
+        ToolRegistry.register(TaskOutputToolImpl())
+        ToolRegistry.register(TaskStopToolImpl())
     }
     
     fun start() {

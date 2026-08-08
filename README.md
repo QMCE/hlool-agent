@@ -50,7 +50,7 @@ CocaCode 是一个强大的 AI 编程助手，专为开发者设计，集成了�
 - JDK 25+
 - Kotlin 2.3+
 
-#### 构建项目
+#### 构建项目（含 Kotlin/Native，非必要勿使用）
 
 ```bash
 ./gradlew build
@@ -59,14 +59,8 @@ CocaCode 是一个强大的 AI 编程助手，专为开发者设计，集成了�
 #### 运行
 
 ```bash
-# 查看版本
-./gradlew run --args="-v"
-
-# 交互模式
-./gradlew run --args="-i"
-
-# 指定 prompt
-./gradlew run --args="-p '你的问题'"
+# 打包完整 jar 用于运行
+./gradlew jvmFatJar
 ```
 
 ### 项目结构

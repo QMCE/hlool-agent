@@ -1,8 +1,11 @@
 {
   "version": 1,
   "model": "claude-sonnet-4-20250514",
-  "apiUrl": "https://api.anthropic.com",
+  "apiType": "messages",
+  "baseUrl": "https://api.anthropic.com",
   "apiKey": "your-api-key-here",
+  "maxTokens": 4096,
+  "maxThinkingTokens": 16000,
   "theme": "auto",
   "fastMode": false,
   "allowedTools": ["Bash", "Read", "Write", "Edit", "Glob", "Grep"]

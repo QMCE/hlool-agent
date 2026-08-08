@@ -1,8 +1,5 @@
 package rj.cocacode.tools
 
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.Serializable
-
 /**
  * Manages undo/redo history for file edits
  * Migrated from Claude Code's EditTool functionality
@@ -113,12 +110,10 @@ class UndoManager(private val maxHistorySize: Int = 100) {
     }
 }
 
-@Serializable
 data class EditHistoryEntry(
     val filePath: String,
     val oldContent: String,
     val newContent: String,
-    @Contextual
     val undoData: Map<String, Any> = emptyMap(),
     val timestamp: Long = System.currentTimeMillis()
 )

@@ -5,6 +5,7 @@ import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.isActive
 
 object Shell {
     data class ExecOptions(
@@ -25,33 +26,102 @@ object Shell {
     
     private val backgroundExecutor = Executors.newCachedThreadPool()
     private val backgroundTasks = mutableMapOf<String, Process>()
-    
+
+    /** Thread pool used to drain process stdout/stderr concurrently. */
+    private val drainExecutor = Executors.newCachedThreadPool()
+
+    /**
+     * Execute a command, draining stdout/stderr concurrently so the child never
+     * blocks on a full pipe buffer. Returns when the process exits or after
+     * [ExecOptions.timeout] (killing the process on timeout).
+     */
     fun exec(command: String, args: List<String> = emptyList(), options: ExecOptions = ExecOptions()): ExecResult {
         return try {
-            val builder = ProcessBuilder(if (options.shell) command else command, *args.toTypedArray())
-            
-            options.env?.let { env ->
-                val processEnv = builder.environment()
-                env.forEach { (key, value) -> processEnv.put(key, value) }
+            val process = startProcess(command, args, options)
+            val stdoutFuture = drainExecutor.submit<String> { readFully(process.inputStream) }
+            val stderrFuture = drainExecutor.submit<String> { readFully(process.errorStream) }
+
+            val finished = try {
+                process.waitFor(options.timeout, TimeUnit.MILLISECONDS)
+            } catch (e: InterruptedException) {
+                false
             }
-            
-            options.cwd?.let { builder.directory(java.io.File(it)) }
-            
-            val process = builder.start()
-            
-            val finished = process.waitFor(options.timeout, TimeUnit.MILLISECONDS)
-            
+
             if (!finished) {
-                process.destroyForcibly()
-                return ExecResult("", "", -1, timedOut = true)
+                destroyProcess(process)
+                return ExecResult("", "Command timed out after ${options.timeout}ms", -1, timedOut = true)
             }
-            
-            val stdout = BufferedReader(InputStreamReader(process.inputStream)).readText()
-            val stderr = BufferedReader(InputStreamReader(process.errorStream)).readText()
-            
+
+            val stdout = try { stdoutFuture.get(5, TimeUnit.SECONDS) } catch (e: Exception) { "" }
+            val stderr = try { stderrFuture.get(5, TimeUnit.SECONDS) } catch (e: Exception) { "" }
             ExecResult(stdout, stderr, process.exitValue())
         } catch (e: Exception) {
             ExecResult("", e.message ?: "Unknown error", -1)
+        }
+    }
+
+    /**
+     * Suspend variant of [exec]. Dispatches the blocking process wait to
+     * [Dispatchers.IO] so the caller's coroutine is not frozen, checks
+     * cancellation every ~100ms, and destroys the process on timeout or
+     * cancellation.
+     */
+    suspend fun execSuspend(command: String, args: List<String> = emptyList(), options: ExecOptions = ExecOptions()): ExecResult =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val process = startProcess(command, args, options)
+            val stdoutFuture = drainExecutor.submit<String> { readFully(process.inputStream) }
+            val stderrFuture = drainExecutor.submit<String> { readFully(process.errorStream) }
+
+            try {
+                val deadline = System.nanoTime() + options.timeout * 1_000_000L
+                while (process.isAlive) {
+                    if (!coroutineContext.isActive) {
+                        destroyProcess(process)
+                        return@withContext ExecResult("", "Cancelled", -1, timedOut = true)
+                    }
+                    if (System.nanoTime() >= deadline) {
+                        destroyProcess(process)
+                        return@withContext ExecResult("", "Command timed out after ${options.timeout}ms", -1, timedOut = true)
+                    }
+                    process.waitFor(100, TimeUnit.MILLISECONDS)
+                }
+
+                val stdout = try { stdoutFuture.get(5, TimeUnit.SECONDS) } catch (e: Exception) { "" }
+                val stderr = try { stderrFuture.get(5, TimeUnit.SECONDS) } catch (e: Exception) { "" }
+                ExecResult(stdout, stderr, process.exitValue())
+            } finally {
+                // Belt-and-braces: destroy the child if we're being cancelled.
+                if (!coroutineContext.isActive) destroyProcess(process)
+            }
+        }
+
+    private fun startProcess(command: String, args: List<String>, options: ExecOptions): Process {
+        val isWindows = System.getProperty("os.name").lowercase().contains("win")
+        val cmdList: List<String> = if (options.shell) {
+            // Run the full command string through a real shell.
+            if (isWindows) listOf("cmd", "/c", command) else listOf("/bin/sh", "-c", command)
+        } else {
+            listOf(command) + args
+        }
+        val builder = ProcessBuilder(cmdList)
+        options.env?.let { env ->
+            val processEnv = builder.environment()
+            env.forEach { (key, value) -> processEnv.put(key, value) }
+        }
+        options.cwd?.let { builder.directory(java.io.File(it)) }
+        return builder.start()
+    }
+
+    /** Read an input stream fully into a string, then close it. */
+    private fun readFully(stream: java.io.InputStream): String =
+        stream.bufferedReader().use { it.readText() }
+
+    private fun destroyProcess(process: Process) {
+        process.destroyForcibly()
+        try {
+            process.waitFor(5, TimeUnit.SECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
         }
     }
     

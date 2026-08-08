@@ -7,15 +7,25 @@ import org.jline.reader.LineReaderBuilder
 import rj.cocacode.constants.Figures
 import rj.cocacode.state.AppStateManager
 
+/**
+ * Terminal abstraction with styled rendering.
+ *
+ * All styling goes through [Ansi] so it can be disabled in non-TTY mode.
+ */
 class TerminalUI {
+    companion object {
+        /** Prompt shown at the input line. */
+        val PROMPT: String get() = Ansi.boldCyan("cocacode") + Ansi.cyan(" ▸ ")
+    }
+
     private var terminal: Terminal? = null
     private var reader: LineReader? = null
-    
+
     fun initialize() {
         terminal = TerminalBuilder.builder()
             .jna(true)
             .build()
-        
+
         reader = LineReaderBuilder.builder()
             .terminal(terminal)
             .completer { _, line, candidates ->
@@ -26,100 +36,169 @@ class TerminalUI {
             }
             .build()
     }
-    
-    fun readLine(prompt: String = "cocacode> "): String? {
+
+    fun readLine(prompt: String = PROMPT): String? {
         return reader?.readLine(prompt)
     }
-    
+
+    /** The underlying terminal writer (or null before initialize). */
+    fun writer(): java.io.Writer? = terminal?.writer()
+
+    /** The underlying JLine terminal (for raw key reading). */
+    fun terminal(): Terminal? = terminal
+
     fun print(message: String) {
         terminal?.writer()?.println(message)
     }
-    
+
+    /** Print without a trailing newline. */
+    fun printInline(message: String) {
+        terminal?.writer()?.print(message)
+        terminal?.writer()?.flush()
+    }
+
     fun printError(message: String) {
-        terminal?.writer()?.println("${Figures.BLACK_CIRCLE} $message")
+        print("${Ansi.brightRed(Figures.BLACK_CIRCLE)} ${message}")
     }
-    
+
     fun printSuccess(message: String) {
-        terminal?.writer()?.println("✓ $message")
+        print("${Ansi.brightGreen("✓")} ${message}")
     }
-    
+
+    fun printWarning(message: String) {
+        print("${Ansi.brightYellow("⚠")} ${message}")
+    }
+
+    fun printInfo(message: String) {
+        print("${Ansi.gray(Figures.BULLET_OPERATOR)} ${message}")
+    }
+
+    // --- Styled message rendering ---
+
+    /** A user message, prefixed with a prompt marker. */
+    fun printUserMessage(content: String) {
+        val prefix = Ansi.brightCyan("❯")
+        content.lines().forEachIndexed { i, line ->
+            if (i == 0) print("$prefix ${line}") else print("  $line")
+        }
+    }
+
+    /** A plain assistant response line. */
+    fun printAssistantMessage(content: String) {
+        print(content)
+    }
+
+    /** A system message (e.g. session notices). */
+    fun printSystemMessage(content: String) {
+        print("${Ansi.dim(content)}")
+    }
+
+    /** A tool execution status line, e.g. "● Bash (ls -la)". */
+    fun printToolCall(toolName: String, description: String) {
+        print("${Ansi.gray(Figures.BLACK_CIRCLE)} ${Ansi.bold(toolName)} ${Ansi.dim("(${description})")}")
+    }
+
+    /** A thinking block label. */
+    fun printThinkingLabel() {
+        print("\n${Ansi.dim("∴ Thinking…")}")
+    }
+
+    // --- Streaming (kept from previous implementation) ---
+
+    fun printChunk(text: String) {
+        terminal?.writer()?.print(text)
+        terminal?.writer()?.flush()
+    }
+
+    fun printThinkingChunk(text: String) {
+        terminal?.writer()?.print("${Ansi.CLAUDE_GRAY}$text${Ansi.RESET}")
+        terminal?.writer()?.flush()
+    }
+
+    fun printThinkingHeader() {
+        terminal?.writer()?.println("\n${Ansi.dim("∴ Thinking…")}")
+    }
+
+    /** No visual footer — thinking just flows into the answer. */
+    fun printThinkingFooter() {
+        terminal?.writer()?.println()
+    }
+
+    // --- Chrome ---
+
+    fun printBanner() {
+        print("")
+        print(Ansi.boldCyan(" ██████╗   ██████╗   ██████╗   █████╗    ██████╗   ██████╗  ██████═╗  ███████╗"))
+        print(Ansi.boldCyan("██╔════╝  ██╔═══██╗ ██╔════╝  ██╔══██╗  ██╔════╝  ██╔═══██╗ ██╔══██║  ██╔════╝"))
+        print(Ansi.boldCyan("██║       ██║   ██║ ██║       ███████║  ██║       ██║   ██║ ██║  ██║  █████╗  "))
+        print(Ansi.boldCyan("██║       ██║   ██║ ██║       ██╔══██║  ██║       ██║   ██║ ██║  ██║  ██╔══╝  "))
+        print(Ansi.boldCyan("╚██████╗  ╚██████╔╝ ╚██████╗  ██║  ██║  ╚██████╗  ╚██████╔╝ ██████╔╝  ███████╗"))
+        print(Ansi.boldCyan(" ╚═════╝   ╚═════╝   ╚═════╝  ╚═╝  ╚═╝   ╚═════╝   ╚═════╝  ╚═════╝   ╚══════╝"))
+        print(Ansi.gray("  AI Coding Assistant — ${Ansi.bold("v" + rj.cocacode.BuildKonfig.APP_VERSION)}"))
+        print(Ansi.gray("  Type ${Ansi.brightCyan("/help")} for commands, ${Ansi.brightCyan("!cmd")} for shell, or just ask."))
+        print("")
+    }
+
+    /** A status line: e.g. "◇ thinking…" or "◇ running". */
+    fun printStatus(label: String) {
+        print("${Ansi.brightCyan(Figures.DIAMOND_OPEN)} ${Ansi.gray(label)}")
+    }
+
     fun clear() {
-        terminal?.writer()?.print("\u001b[H\u001b[2J")
+        terminal?.writer()?.print("[H[2J")
+        terminal?.writer()?.flush()
     }
-    
+
     fun showSpinner(message: String) {
         var frame = 0
         terminal?.writer()?.print("$message ${Figures.BRIDGE_SPINNER_FRAMES[frame]}")
     }
-    
+
     fun updateSpinner(frame: Int) {
         terminal?.writer()?.print("\r${Figures.BRIDGE_SPINNER_FRAMES[frame % Figures.BRIDGE_SPINNER_FRAMES.size]}")
     }
-    
+
     fun stopSpinner() {
         terminal?.writer()?.println()
     }
-    
+
     fun drawBox(title: String, content: List<String>) {
         val width = 60
         val border = "━".repeat(width - 2)
-        
+
         print("┌$border┐")
         print("│ ${title.padEnd(width - 4)} │")
         print("├$border┤")
-        
+
         content.forEach { line ->
             print("│ ${line.padEnd(width - 4)} │")
         }
-        
+
         print("└$border┘")
     }
-    
+
     fun drawTable(headers: List<String>, rows: List<List<String>>) {
         val colWidths = headers.indices.map { col ->
             val maxContent = rows.maxOfOrNull { it.getOrNull(col)?.length ?: 0 } ?: 0
             maxOf(headers[col].length, maxContent) + 2
         }
-        
+
         print(colWidths.mapIndexed { i, w -> headers[i].padEnd(w) }.joinToString("│"))
         print(colWidths.map { "─".repeat(it) }.joinToString("┼"))
-        
+
         rows.forEach { row ->
             print(row.mapIndexed { i, cell -> cell.padEnd(colWidths[i]) }.joinToString("│"))
         }
     }
-    
+
     fun shutdown() {
         terminal?.close()
     }
 }
 
-class Spinner(private val message: String) {
-    private var isRunning = false
-    private val frames = Figures.BRIDGE_SPINNER_FRAMES
-    private var frameIndex = 0
-    
-    fun start() {
-        isRunning = true
-        Thread {
-            while (isRunning) {
-                print("\r$message ${frames[frameIndex % frames.size]}")
-                frameIndex++
-                Thread.sleep(100)
-            }
-        }.start()
-    }
-    
-    fun stop(success: Boolean = true) {
-        isRunning = false
-        val indicator = if (success) Figures.BRIDGE_READY_INDICATOR else Figures.BRIDGE_FAILED_INDICATOR
-        println("\r$message $indicator")
-    }
-}
-
 object UI {
     private var instance: TerminalUI? = null
-    
+
     fun init(): TerminalUI {
         if (instance == null) {
             instance = TerminalUI()
@@ -127,9 +206,9 @@ object UI {
         }
         return instance!!
     }
-    
+
     fun get(): TerminalUI = instance ?: init()
-    
+
     fun shutdown() {
         instance?.shutdown()
         instance = null

@@ -8,6 +8,8 @@ import rj.cocacode.tools.ToolResult
 import rj.cocacode.tools.ToolRegistry
 import rj.cocacode.utils.generateUuid
 import rj.cocacode.services.api.ApiClient
+import rj.cocacode.services.api.RequestBuilder
+import rj.cocacode.services.api.ResponseParser
 import rj.cocacode.config.ApiConfig
 import rj.cocacode.state.AbortController
 import rj.cocacode.utils.Logger
@@ -97,7 +99,7 @@ class SubAgentEngine(
 
             try {
                 val response = withTimeout(SUBAGENT_TIMEOUT_MS - elapsed) {
-                    callModel(messages.toList(), model)
+                    callModel(messages.toList(), model, availableTools)
                 }
 
                 if (response.content.isNotBlank()) {
@@ -249,7 +251,8 @@ class SubAgentEngine(
         // Fork notice
         if (context.isChildOfFork) {
             sb.appendLine()
-            sb.appendLine("NOTE: This agent is running as a forked subagent. Execute the given task directly without spawning further subagents.")
+            sb.appendLine("You are a teammate worker in a team led by the main agent. Execute the given task autonomously and completely.")
+            sb.appendLine("Your text output is delivered back to the leader. If you need to ask something, make it part of your final report.")
         }
 
         // Memory prompt
@@ -329,13 +332,14 @@ class SubAgentEngine(
      */
     private suspend fun callModel(
         messages: List<Message>,
-        model: String?
+        model: String?,
+        tools: List<rj.cocacode.tools.Tool> = emptyList()
     ): SubAgentModelResponse {
         val finalModel = model ?: ApiConfig.model
         val systemPrompt = messages.firstOrNull { it.type == MessageType.SYSTEM }?.content ?: ""
         val apiMessages = messages.filter { it.type != MessageType.SYSTEM }.map { msg ->
-            mapOf(
-                "role" to when (msg.type) {
+            RequestBuilder.ApiMessage(
+                role = when (msg.type) {
                     MessageType.USER -> "user"
                     MessageType.ASSISTANT -> "assistant"
                     MessageType.TOOL -> "assistant"
@@ -343,23 +347,44 @@ class SubAgentEngine(
                     MessageType.SYSTEM -> "system"
                     else -> "user"
                 },
-                "content" to msg.content
+                text = msg.content
             )
         }
 
-        val requestBody = mapOf<String, Any>(
-            "model" to finalModel,
-            "max_tokens" to 4096,
-            "system" to systemPrompt,
-            "messages" to apiMessages
+        val toolSpecs = tools.map { tool ->
+            rj.cocacode.services.api.ToolSpec(
+                name = tool.name,
+                description = tool.description,
+                inputSchema = rj.cocacode.services.api.ToolSchemas.schemaForTool(tool.name)
+            )
+        }
+
+        val request = RequestBuilder.build(
+            model = finalModel,
+            system = systemPrompt,
+            messages = apiMessages,
+            tools = toolSpecs,
+            maxTokens = 4096,
+            stream = false,
+            thinkingBudget = ApiConfig.thinkingBudget
         )
 
-        val result = ApiClient.post("/v1/messages", requestBody)
+        val result = ApiClient.post(RequestBuilder.messagesEndpoint(), request)
         return result.fold(
             onSuccess = { json ->
-                // Parse simple content response (tool call parsing skipped for simplicity)
-                val content = extractContentFromJson(json)
-                SubAgentModelResponse(content = content)
+                val parsed = try {
+                    ResponseParser.parse(ApiConfig.baseUrl, json)
+                } catch (e: Exception) {
+                    return@fold SubAgentModelResponse(
+                        content = "",
+                        isError = true,
+                        errorMessage = "Failed to parse API response: ${e.message}"
+                    )
+                }
+                SubAgentModelResponse(
+                    content = parsed.text,
+                    toolCalls = parsed.toolUses.map { it.name to it.input }
+                )
             },
             onFailure = { error ->
                 SubAgentModelResponse(
@@ -369,16 +394,6 @@ class SubAgentEngine(
                 )
             }
         )
-    }
-
-    /**
-     * Extract content from JSON API response.
-     */
-    private fun extractContentFromJson(json: String): String {
-        // Simple content extraction - in production use proper JSON parsing
-        val contentPattern = Regex(""""content"\s*:\s*"((?:[^"\\]|\\.)*)"""")
-        val match = contentPattern.find(json)
-        return match?.groupValues?.get(1)?.replace("\\n", "\n") ?: json.take(2000)
     }
 
     /**
@@ -398,6 +413,8 @@ class SubAgentEngine(
     private fun cleanOutput(content: String): String {
         return content
             .replace(Regex("<tool_call>.*?</tool_call>", RegexOption.DOT_MATCHES_ALL), "")
+            .replace(Regex("<tool_calls>.*?</tool_calls>", RegexOption.DOT_MATCHES_ALL), "")
+            .replace(Regex("<invoke name=\"[^\"]*\">.*?</invoke>", RegexOption.DOT_MATCHES_ALL), "")
             .replace(Regex("```json\\s*\\{.*?\\}\\s*```", RegexOption.DOT_MATCHES_ALL), "")
             .trim()
     }

@@ -51,8 +51,8 @@ class BashToolImpl : Tool("Bash", "Execute shell commands") {
         )
         
         return try {
-            val result = Shell.exec(command, options = options)
-            
+            val result = Shell.execSuspend(command, options = options)
+
             // Check for timeout
             if (result.timedOut) {
                 return ToolResult(

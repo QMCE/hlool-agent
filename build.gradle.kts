@@ -1,10 +1,25 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec
+
 plugins {
     kotlin("multiplatform") version "2.3.20"
     kotlin("plugin.serialization") version "2.3.20"
+    id("com.codingfeline.buildkonfig") version "0.22.0"
 }
 
 group = "rj.cocacode"
-version = "0.4.0"
+version = "0.5.1"
+
+// Generate a BuildKonfig object exposing project metadata at compile time
+// (e.g. version, app name) so the app never hard-codes them.
+buildkonfig {
+    packageName = "rj.cocacode"
+    objectName = "BuildKonfig"
+    exposeObjectWithName = "BuildKonfig"
+    defaultConfigs {
+        buildConfigField(FieldSpec.Type.STRING, "APP_VERSION", "${project.version}")
+        buildConfigField(FieldSpec.Type.STRING, "APP_NAME", "cocacode")
+    }
+}
 
 kotlin {
     jvm {
@@ -18,6 +33,7 @@ kotlin {
         binaries {
             executable {
                 baseName = "cocacode"
+                entryPoint("rj.cocacode.main")
             }
         }
     }

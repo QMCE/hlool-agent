@@ -37,7 +37,8 @@ object VersionInfo {
         )
     }
     
-    fun current(): Version = Version(1, 0, 0)
+    /** Current app version, read from the compile-time BuildKonfig value. */
+    fun current(): Version = parse(rj.cocacode.BuildKonfig.APP_VERSION) ?: Version(0, 0, 0)
     
     fun isCompatible(current: Version, required: Version): Boolean {
         return current.major == required.major &&

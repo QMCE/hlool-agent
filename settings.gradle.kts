@@ -1,4 +1,4 @@
-rootProject.name = "CocaCode"
+rootProject.name = "cocacode"
 
 pluginManagement {
     repositories {

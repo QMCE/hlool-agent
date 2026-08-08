@@ -57,6 +57,10 @@ Usage notes:
 - Each agent invocation is stateless. You will not be able to send additional messages to the agent, nor will the agent be able to communicate with you outside of its final report.
 - The agent's outputs should generally be trusted.
 - Clearly tell the agent whether you expect it to write code or just do research.
+
+Teammates (preferred for large/independent work):
+- Provide a `name` to spawn a PERSISTENT teammate. With teammates mode on (the default), the named agent runs autonomously in the background and can receive follow-up messages via SendMessage(to: 'name'). Use this for large, self-contained tasks you don't need to block on.
+- Without a `name`, the spawn is a one-shot subagent that runs synchronously and returns its final report.
 """.trimIndent(),
     inputSchema = SubAgentToolSchema.inputSchema
 ) {
@@ -76,6 +80,13 @@ Usage notes:
         val modelOverride = input["model"] as? String
         val cwdOverride = input["cwd"] as? String
         val memoryScope = input["memory_scope"] as? String
+
+        // Teammate path: a named spawn while teammates mode is on becomes a
+        // persistent teammate instead of a one-shot subagent.
+        val teammateName = input["name"] as? String
+        if (teammateName != null && rj.cocacode.agents.TeammateManager.teammatesEnabled) {
+            return spawnTeammate(teammateName, prompt, subagentType, description)
+        }
 
         // Check concurrency limit (skip for background tasks)
         if (!runInBackground && activeSubAgents.get() >= MAX_CONCURRENT_SUBAGENTS) {
@@ -190,6 +201,34 @@ Usage notes:
             whenToUse = "",
             systemPrompt = ""
         )
+
+    /**
+     * Spawn a persistent teammate. Returns immediately; the teammate runs in the
+     * background and can be messaged via SendMessage.
+     */
+    private fun spawnTeammate(
+        name: String,
+        prompt: String,
+        agentType: String,
+        description: String
+    ): ToolResult {
+        return rj.cocacode.agents.TeammateManager.spawn(name, prompt, agentType).fold(
+            onSuccess = { teammate ->
+                ToolResult(
+                    text = "Teammate '$name' spawned (${teammate.id}) — it is running '$description' in the background. " +
+                        "Use SendMessage(to: '$name') to send follow-up work or request its results.",
+                    metadata = mapOf(
+                        "teammate" to name,
+                        "teammateId" to teammate.id,
+                        "teammatesEnabled" to true
+                    )
+                )
+            },
+            onFailure = { e ->
+                ToolResult(text = "Failed to spawn teammate '$name': ${e.message}", isError = true)
+            }
+        )
+    }
 }
 
 /**
@@ -243,6 +282,10 @@ object SubAgentToolSchema {
         "context" to mapOf(
             "type" to "object",
             "description" to "Additional context key-value pairs to pass to the subagent"
+        ),
+        "name" to mapOf(
+            "type" to "string",
+            "description" to "Name for the spawned agent. With teammates mode enabled (default), a named spawn becomes a persistent teammate that runs in the background and can be messaged via SendMessage."
         )
     )
 }

@@ -18,7 +18,9 @@ object CommandRegistry {
         register(SettingsCommand())
         register(ToolsCommand())
         register(ClearCommand())
+        register(ResumeCommand())
         register(ExitCommand())
+        register(TeammateCommand())
     }
     
     fun register(command: Command) {
@@ -50,13 +52,16 @@ class HelpCommand : Command() {
     override suspend fun execute(args: List<String>) {
         val ui = UI.get()
         ui.print("")
-        ui.print("Available commands:")
-        ui.print("")
+        ui.print(rj.cocacode.ui.Ansi.bold("Available commands"))
+        ui.print(rj.cocacode.ui.Ansi.gray("─".repeat(30)))
         CommandRegistry.getAll().forEach { cmd ->
-            ui.print("  /${cmd.name.padEnd(12)} ${cmd.description}")
+            ui.print("  ${rj.cocacode.ui.Ansi.brightCyan("/${cmd.name.padEnd(14)}")}${cmd.description}")
         }
+        ui.print(rj.cocacode.ui.Ansi.gray("─".repeat(30)))
+        ui.print("  ${rj.cocacode.ui.Ansi.brightCyan("!command".padEnd(14))}${rj.cocacode.ui.Ansi.gray("Run a shell command")}")
+        ui.print("  ${rj.cocacode.ui.Ansi.brightCyan("/teammate \"task\"".padEnd(14))}${rj.cocacode.ui.Ansi.gray("Spawn a teammate agent")}")
         ui.print("")
-        ui.print("For tool help, type: /tools")
+        ui.print(rj.cocacode.ui.Ansi.gray("For tool help, type /tools"))
     }
 }
 
@@ -155,9 +160,56 @@ class ToolsCommand : Command() {
 
 class ClearCommand : Command() {
     override val name = "clear"
-    override val description = "Clear the screen"
+    override val description = "Clear the screen and start a new session"
     override suspend fun execute(args: List<String>) {
         UI.get().clear()
+        val engine = rj.cocacode.engine.QueryEngineManager.getEngine()
+        engine.startNewSession()
+        UI.get().printInfo("Started a new session")
+    }
+}
+
+class ResumeCommand : Command() {
+    override val name = "resume"
+    override val description = "Resume a saved session (arrow keys to pick)"
+    override suspend fun execute(args: List<String>) {
+        val ui = UI.get()
+        val sessions = rj.cocacode.utils.SessionStorage.listSessions()
+        if (sessions.isEmpty()) {
+            ui.printInfo("No saved sessions found")
+            return
+        }
+
+        // If a session id is given directly, load it without the menu.
+        args.firstOrNull()?.let { id ->
+            val engine = rj.cocacode.engine.QueryEngineManager.getEngine()
+            val data = rj.cocacode.utils.SessionStorage.loadSession(id)
+            if (data != null) {
+                engine.restoreHistory(data.messages)
+                ui.printSuccess("Resumed session (${id.take(8)}…) with ${data.messages.size} message(s)")
+                return
+            }
+            ui.printWarning("Session '$id' not found — showing picker")
+        }
+
+        val terminal = ui.terminal()
+        val writer = ui.writer() ?: java.io.PrintWriter(System.out, true)
+        if (terminal == null) {
+            ui.printError("Interactive session picker unavailable")
+            return
+        }
+
+        val picked = rj.cocacode.ui.SessionPicker.pick(terminal, writer, sessions)
+        if (picked != null) {
+            val data = rj.cocacode.utils.SessionStorage.loadSession(picked.id)
+            if (data != null) {
+                val engine = rj.cocacode.engine.QueryEngineManager.getEngine()
+                engine.restoreHistory(data.messages)
+                ui.printSuccess("Resumed session (${picked.id.take(8)}…) with ${data.messages.size} message(s)")
+            }
+        } else {
+            ui.printInfo("Cancelled")
+        }
     }
 }
 

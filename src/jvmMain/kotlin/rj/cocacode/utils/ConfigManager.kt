@@ -12,8 +12,14 @@ import java.util.concurrent.ConcurrentHashMap
 data class Config(
     val version: Int = 1,
     val model: String? = null,
+    val baseUrl: String? = null,
     val apiUrl: String? = null,
     val apiKey: String? = null,
+    /** "chat" (OpenAI-compatible /chat/completions) or "messages" (Anthropic). */
+    val apiType: String? = null,
+    val maxTokens: Int? = null,
+    /** Token budget for thinking; null/0 disables. */
+    val maxThinkingTokens: Int? = null,
     val theme: String = "auto",
     val fastMode: Boolean = false,
     val permissionMode: String = "default",

@@ -67,6 +67,15 @@ object SessionStorage {
     }
     
     fun getSessionDir(): File = sessionsDir
+
+    /** The most recently updated session id, or null if none exist. */
+    fun getLastSessionId(): String? = listSessions().firstOrNull()?.id
+
+    /** Messages for the most recent session, or null if none exist. */
+    fun loadLastSession(): SessionData? {
+        val id = getLastSessionId() ?: return null
+        return loadSession(id)
+    }
 }
 
 data class SessionData(

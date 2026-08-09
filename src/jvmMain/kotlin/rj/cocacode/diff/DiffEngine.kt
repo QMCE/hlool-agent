@@ -52,57 +52,66 @@ object DiffEngine {
     private fun computeHunks(oldLines: List<String>, newLines: List<String>): List<DiffHunk> {
         val lcs = longestCommonSubsequence(oldLines, newLines)
         val hunks = mutableListOf<DiffHunk>()
-        
+
         var oldIdx = 0
         var newIdx = 0
-        var hunkStart = 0
+        var lcsIdx = 0
         var hunkLines = mutableListOf<DiffLine>()
         var oldLineNum = 1
         var newLineNum = 1
-        
+
         while (oldIdx < oldLines.size || newIdx < newLines.size) {
-            if (oldIdx < lcs.size && newIdx < lcs.size && 
-                oldLines[oldIdx] == newLines[newIdx] &&
-                oldLines[oldIdx] == lcs[lcs.size - 1 - (oldLines.size - 1 - oldIdx)]) {
-                
+            val onLcs = lcsIdx < lcs.size &&
+                oldIdx < oldLines.size &&
+                newIdx < newLines.size &&
+                oldLines[oldIdx] == lcs[lcsIdx] &&
+                newLines[newIdx] == lcs[lcsIdx]
+
+            if (onLcs) {
                 if (hunkLines.isNotEmpty() && hunkLines.size >= 3) {
-                    hunks.add(createHunk(hunkLines, oldIdx, newIdx))
-                    hunkLines.clear()
+                    hunks.add(createHunk(hunkLines))
+                    hunkLines = mutableListOf()
                 }
-                
                 hunkLines.add(DiffLine(LineType.CONTEXT, oldLines[oldIdx], oldLineNum, newLineNum))
                 oldIdx++
                 newIdx++
+                lcsIdx++
                 oldLineNum++
                 newLineNum++
+            } else if (oldIdx < oldLines.size &&
+                (lcsIdx >= lcs.size || oldLines[oldIdx] != lcs[lcsIdx])
+            ) {
+                hunkLines.add(DiffLine(LineType.REMOVED, oldLines[oldIdx], oldLineNum, null))
+                oldIdx++
+                oldLineNum++
+            } else if (newIdx < newLines.size) {
+                hunkLines.add(DiffLine(LineType.ADDED, newLines[newIdx], null, newLineNum))
+                newIdx++
+                newLineNum++
             } else {
-                if (oldIdx < oldLines.size && (newIdx >= newLines.size || shouldRemove(oldLines, newLines, oldIdx, newIdx, lcs))) {
-                    hunkLines.add(DiffLine(LineType.REMOVED, oldLines[oldIdx], oldLineNum, null))
-                    oldIdx++
-                    oldLineNum++
-                } else if (newIdx < newLines.size) {
-                    hunkLines.add(DiffLine(LineType.ADDED, newLines[newIdx], null, newLineNum))
-                    newIdx++
-                    newLineNum++
-                }
+                break
             }
         }
-        
+
         if (hunkLines.isNotEmpty()) {
-            hunks.add(createHunk(hunkLines, oldIdx, newIdx))
+            hunks.add(createHunk(hunkLines))
         }
-        
+
         return hunks
     }
-    
-    private fun createHunk(lines: List<DiffLine>, oldIdx: Int, newIdx: Int): DiffHunk {
+
+    private fun createHunk(lines: List<DiffLine>): DiffHunk {
         val removed = lines.filter { it.type == LineType.REMOVED }
         val added = lines.filter { it.type == LineType.ADDED }
-        
+
         return DiffHunk(
-            oldStart = removed.firstOrNull()?.oldLineNumber ?: 1,
+            oldStart = removed.firstOrNull()?.oldLineNumber
+                ?: lines.firstOrNull { it.oldLineNumber != null }?.oldLineNumber
+                ?: 1,
             oldLines = removed.size,
-            newStart = added.firstOrNull()?.newLineNumber ?: 1,
+            newStart = added.firstOrNull()?.newLineNumber
+                ?: lines.firstOrNull { it.newLineNumber != null }?.newLineNumber
+                ?: 1,
             newLines = added.size,
             lines = lines
         )
@@ -139,12 +148,6 @@ object DiffEngine {
         }
         
         return result
-    }
-    
-    private fun shouldRemove(oldLines: List<String>, newLines: List<String>, oldIdx: Int, newIdx: Int, lcs: List<String>): Boolean {
-        if (oldIdx >= oldLines.size) return false
-        if (newIdx >= newLines.size) return true
-        return oldLines[oldIdx] != newLines[newIdx]
     }
     
     fun formatUnified(diff: DiffResult): String {

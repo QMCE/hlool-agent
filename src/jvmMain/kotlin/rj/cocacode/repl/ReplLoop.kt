@@ -193,6 +193,9 @@ class ReplLoop {
                         rj.cocacode.ui.Ansi.gray("●") + " " +
                             rj.cocacode.ui.Ansi.bold(name) + descPart + "\n"
                     )
+                },
+                onNotice = { msg ->
+                    statusBar.printOutput(rj.cocacode.ui.Ansi.dim("  ⚠ $msg") + "\n")
                 }
             )
         } finally {

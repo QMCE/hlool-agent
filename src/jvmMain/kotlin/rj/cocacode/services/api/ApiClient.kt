@@ -121,10 +121,11 @@ object ApiClient {
 
     /**
      * Perform a streaming (SSE) POST request. `data:` payloads are passed to
-     * [onChunk] one at a time; `data: [DONE]` terminates the stream.
+     * [onChunk] one at a time.
      *
-     * Request/socket timeouts are relaxed: a wall-clock [ApiConfig.timeout] on
-     * the whole SSE body was cutting long thinking mid-reply ("random interrupt").
+     * Completes successfully only after a terminal SSE marker (`[DONE]`,
+     * `message_stop`, or a `finish_reason`/`stop_reason`). A mid-stream TCP drop
+     * (read returns null / IOException) is [IncompleteStreamException] — not success.
      */
     suspend fun stream(
         endpoint: String,
@@ -147,28 +148,125 @@ object ApiClient {
                 }
             }.execute { response ->
                 if (!response.status.isSuccess()) {
-                    return@execute Result.failure(HttpException(response.status, "Stream ${response.status}"))
+                    val errBody = try {
+                        response.bodyAsText().take(500)
+                    } catch (_: Exception) {
+                        ""
+                    }
+                    val ex = HttpException(response.status, "Stream ${response.status}: $errBody")
+                    // 429 / 5xx are transient for the engine retry loop.
+                    return@execute if (response.status.value == 429 || response.status.value >= 500) {
+                        Result.failure(IncompleteStreamException(ex.message, ex))
+                    } else {
+                        Result.failure(ex)
+                    }
                 }
                 val channel = response.bodyAsChannel()
+                var finished = false
                 while (true) {
                     if (isAborted()) {
                         return@execute Result.failure(rj.cocacode.state.AbortException("Aborted"))
                     }
-                    val line = channel.readUTF8Line(1_048_576) ?: break
+                    val line = try {
+                        channel.readUTF8Line(1_048_576)
+                    } catch (e: Exception) {
+                        return@execute if (finished) {
+                            Result.success(Unit)
+                        } else {
+                            Result.failure(
+                                IncompleteStreamException(
+                                    "stream read failed before completion: ${e.message}",
+                                    e
+                                )
+                            )
+                        }
+                    }
+                    if (line == null) {
+                        // EOF — only OK if we already saw a terminal event.
+                        return@execute if (finished) {
+                            Result.success(Unit)
+                        } else {
+                            Result.failure(
+                                IncompleteStreamException("connection closed before stream finished")
+                            )
+                        }
+                    }
                     if (line.startsWith("data:")) {
                         val data = line.removePrefix("data:").trimStart()
-                        if (data != "[DONE]" && data.isNotBlank()) onChunk(data)
+                        when {
+                            data == "[DONE]" -> {
+                                finished = true
+                                break
+                            }
+                            data.isNotBlank() -> {
+                                onChunk(data)
+                                if (isTerminalSseData(data)) finished = true
+                            }
+                        }
                     }
                 }
                 Result.success(Unit)
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            if (e is rj.cocacode.state.AbortException) Result.failure(e)
+            else if (isRetryableNetwork(e)) {
+                Result.failure(IncompleteStreamException(e.message ?: e::class.simpleName ?: "network", e))
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
     /** Idle gap allowed between SSE lines (thinking can be silent for a while). */
     private const val STREAM_SOCKET_IDLE_MS = 600_000L
+
+    private val terminalFinishReason = Regex(
+        "\"(?:finish_reason|stop_reason)\"\\s*:\\s*\"(?:stop|tool_calls|end_turn|length|max_tokens)\""
+    )
+
+    private fun isTerminalSseData(data: String): Boolean {
+        if (data.contains("\"message_stop\"")) return true
+        if (terminalFinishReason.containsMatchIn(data)) return true
+        return false
+    }
+
+    fun isRetryableNetwork(error: Throwable): Boolean {
+        var e: Throwable? = error
+        while (e != null) {
+            when (e) {
+                is IncompleteStreamException -> return true
+                is java.io.IOException -> return true
+                is java.io.EOFException -> return true
+                is java.net.SocketException -> return true
+                is java.net.SocketTimeoutException -> return true
+                is java.net.ConnectException -> return true
+                is java.net.UnknownHostException -> return true
+                is java.nio.channels.ClosedChannelException -> return true
+                is io.ktor.client.network.sockets.ConnectTimeoutException -> return true
+                is io.ktor.client.network.sockets.SocketTimeoutException -> return true
+                is io.ktor.client.plugins.HttpRequestTimeoutException -> return true
+            }
+            val name = e::class.simpleName.orEmpty()
+            val msg = e.message.orEmpty().lowercase()
+            if (name.contains("Timeout", ignoreCase = true)) return true
+            if (msg.contains("connection reset") ||
+                msg.contains("broken pipe") ||
+                msg.contains("closed") ||
+                msg.contains("unreachable") ||
+                msg.contains("temporarily unavailable") ||
+                msg.contains("stream reset")
+            ) {
+                return true
+            }
+            e = e.cause
+        }
+        return false
+    }
+
+    class IncompleteStreamException(
+        message: String,
+        cause: Throwable? = null
+    ) : Exception(message, cause)
 
     /**
      * Convert an arbitrary value (maps, lists, primitives, null) into a

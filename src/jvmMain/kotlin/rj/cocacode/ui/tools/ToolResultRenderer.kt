@@ -101,31 +101,39 @@ object ToolResultRenderer {
     /** Colored line diff for small edit hunks. */
     fun formatInlineDiff(oldContent: String, newContent: String): String {
         if (oldContent == newContent) return Ansi.dim("    (no textual change)")
-        // Prefer simple -/+ when both are short snippets (typical Edit tool).
-        if (oldContent.lines().size <= 30 && newContent.lines().size <= 30) {
+        return try {
+            // Prefer simple -/+ when both are short snippets (typical Edit tool).
+            if (oldContent.lines().size <= 30 && newContent.lines().size <= 30) {
+                val sb = StringBuilder()
+                oldContent.lines().forEach { sb.appendLine(Ansi.brightRed("    - $it")) }
+                newContent.lines().forEach { sb.appendLine(Ansi.brightGreen("    + $it")) }
+                return sb.toString().trimEnd()
+            }
+            val diff = DiffEngine.compute(oldContent, newContent)
             val sb = StringBuilder()
-            oldContent.lines().forEach { sb.appendLine(Ansi.brightRed("    - $it")) }
-            newContent.lines().forEach { sb.appendLine(Ansi.brightGreen("    + $it")) }
-            return sb.toString().trimEnd()
-        }
-        val diff = DiffEngine.compute(oldContent, newContent)
-        val sb = StringBuilder()
-        var count = 0
-        for (hunk in diff.hunks) {
-            for (line in hunk.lines) {
-                if (count++ > 80) {
-                    sb.appendLine(Ansi.dim("    …"))
-                    return sb.toString().trimEnd()
-                }
-                when (line.type) {
-                    LineType.ADDED -> sb.appendLine(Ansi.brightGreen("    + ${line.content}"))
-                    LineType.REMOVED -> sb.appendLine(Ansi.brightRed("    - ${line.content}"))
-                    LineType.CONTEXT -> sb.appendLine(Ansi.dim("      ${line.content}"))
-                    LineType.HEADER -> sb.appendLine(Ansi.dim("    ${line.content}"))
+            var count = 0
+            for (hunk in diff.hunks) {
+                for (line in hunk.lines) {
+                    if (count++ > 80) {
+                        sb.appendLine(Ansi.dim("    …"))
+                        return sb.toString().trimEnd()
+                    }
+                    when (line.type) {
+                        LineType.ADDED -> sb.appendLine(Ansi.brightGreen("    + ${line.content}"))
+                        LineType.REMOVED -> sb.appendLine(Ansi.brightRed("    - ${line.content}"))
+                        LineType.CONTEXT -> sb.appendLine(Ansi.dim("      ${line.content}"))
+                        LineType.HEADER -> sb.appendLine(Ansi.dim("    ${line.content}"))
+                    }
                 }
             }
+            sb.toString().trimEnd().ifEmpty { Ansi.dim("    (diff empty)") }
+        } catch (_: Exception) {
+            // Never let diff rendering kill the agent turn.
+            val sb = StringBuilder()
+            oldContent.lines().take(40).forEach { sb.appendLine(Ansi.brightRed("    - $it")) }
+            newContent.lines().take(40).forEach { sb.appendLine(Ansi.brightGreen("    + $it")) }
+            sb.toString().trimEnd()
         }
-        return sb.toString().trimEnd().ifEmpty { Ansi.dim("    (diff empty)") }
     }
 
     /** Preview diff for permission prompt (before execute). */

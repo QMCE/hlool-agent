@@ -182,7 +182,8 @@ class QueryEngine {
         prompt: String,
         onThinking: (String) -> Unit = {},
         onText: (String) -> Unit = {},
-        onToolCall: (String, String) -> Unit = { _, _ -> }
+        onToolCall: (String, String) -> Unit = { _, _ -> },
+        onNotice: (String) -> Unit = {}
     ): QueryResponse {
         if (isProcessing) {
             return QueryResponse.Error("Already processing a query")
@@ -208,7 +209,7 @@ class QueryEngine {
             AppStateManager.addMessage(userMessage)
             wireHistory.add(RequestBuilder.ApiMessage(role = "user", text = prompt))
 
-            val result = runAgentLoop(prompt, onThinking, onText, onToolCall, abort)
+            val result = runAgentLoop(prompt, onThinking, onText, onToolCall, onNotice, abort)
             if (result is QueryResponse.Success) saveSession()
             return result
         } catch (e: rj.cocacode.state.AbortException) {
@@ -243,6 +244,7 @@ class QueryEngine {
         onThinking: (String) -> Unit,
         onText: (String) -> Unit,
         onToolCall: (String, String) -> Unit,
+        onNotice: (String) -> Unit,
         abort: rj.cocacode.state.AbortController
     ): QueryResponse {
         // Continue from the full wire transcript (thinking + tools), not the
@@ -285,28 +287,23 @@ class QueryEngine {
             )
 
             AppStateManager.setThinking(true)
-            val accumulator = StreamAccumulator(ApiConfig.apiType)
-            val streamResult = ApiClient.stream(
-                RequestBuilder.messagesEndpoint(),
-                request,
-                isAborted = { abort.isAborted }
-            ) { data ->
-                val delta = accumulator.feed(data)
-                if (delta.thinking.isNotEmpty()) onThinking(delta.thinking)
-                if (delta.text.isNotEmpty()) onText(delta.text)
-            }
-            accumulator.finalize()
+            val (accumulator, streamError) = streamModelTurn(
+                request = request,
+                abort = abort,
+                onThinking = onThinking,
+                onText = onText,
+                onNotice = onNotice
+            )
             AppStateManager.setThinking(false)
 
             if (abort.isAborted) throw rj.cocacode.state.AbortException("Aborted")
 
-            val error = streamResult.exceptionOrNull()
-            if (error != null) {
-                if (error is rj.cocacode.state.AbortException) throw error
+            if (streamError != null) {
+                if (streamError is rj.cocacode.state.AbortException) throw streamError
                 commitWire()
                 val prefix = if (awaitingPostToolReply) "After tools: " else ""
                 dumpToolDebug(apiHistory, awaitingPostToolReply)
-                return QueryResponse.Error("${prefix}API call failed: ${error.message}")
+                return QueryResponse.Error("${prefix}API call failed: ${streamError.message}")
             }
             accumulator.streamError?.let { err ->
                 commitWire()
@@ -367,8 +364,17 @@ class QueryEngine {
                 if (abort.isAborted) throw rj.cocacode.state.AbortException("Aborted")
                 onToolCall(toolUse.name, describeToolCall(toolUse.name, toolUse.input))
                 val toolResult = executeTool(toolUse)
-                val display = formatToolResult(toolUse.name, toolResult, toolUse.input)
-                onToolResult(toolUse.name, display, toolResult.isError)
+                val display = try {
+                    formatToolResult(toolUse.name, toolResult, toolUse.input)
+                } catch (e: Exception) {
+                    Logger.warn("formatToolResult(${toolUse.name}) failed: ${e.message}")
+                    toolResult.text
+                }
+                try {
+                    onToolResult(toolUse.name, display, toolResult.isError)
+                } catch (e: Exception) {
+                    Logger.warn("onToolResult(${toolUse.name}) failed: ${e.message}")
+                }
                 ApiContentBlock.ToolResultBlock(
                     toolUseId = toolUse.id,
                     content = toolResult.text,
@@ -394,6 +400,70 @@ class QueryEngine {
         recordAssistantMessage(message, null)
         commitWire()
         return QueryResponse.Success(ModelResponse(message, null))
+    }
+
+    /**
+     * One model SSE turn with retries on transient network / incomplete streams.
+     * Does not commit partial wire history — caller only uses a finished accumulator.
+     */
+    private suspend fun streamModelTurn(
+        request: kotlinx.serialization.json.JsonObject,
+        abort: rj.cocacode.state.AbortController,
+        onThinking: (String) -> Unit,
+        onText: (String) -> Unit,
+        onNotice: (String) -> Unit
+    ): Pair<StreamAccumulator, Throwable?> {
+        var lastError: Throwable? = null
+        for (attempt in 1..STREAM_MAX_ATTEMPTS) {
+            if (abort.isAborted) {
+                return StreamAccumulator(ApiConfig.apiType) to rj.cocacode.state.AbortException("Aborted")
+            }
+            val accumulator = StreamAccumulator(ApiConfig.apiType)
+            val streamResult = ApiClient.stream(
+                RequestBuilder.messagesEndpoint(),
+                request,
+                isAborted = { abort.isAborted }
+            ) { data ->
+                val delta = accumulator.feed(data)
+                if (delta.thinking.isNotEmpty()) onThinking(delta.thinking)
+                if (delta.text.isNotEmpty()) onText(delta.text)
+            }
+            accumulator.finalize()
+
+            val error = streamResult.exceptionOrNull()
+            if (error == null) {
+                // Empty successful stream is also suspicious — retry once.
+                val empty = accumulator.text.isBlank() &&
+                    accumulator.thinking.isBlank() &&
+                    accumulator.toolUsesList.isEmpty() &&
+                    accumulator.streamError == null &&
+                    accumulator.stopReasonValue == null
+                if (empty && attempt < STREAM_MAX_ATTEMPTS) {
+                    lastError = ApiClient.IncompleteStreamException("empty stream response")
+                    onNotice("Empty stream — retrying ($attempt/$STREAM_MAX_ATTEMPTS)…")
+                    kotlinx.coroutines.delay(STREAM_RETRY_BASE_MS * attempt)
+                    continue
+                }
+                return accumulator to null
+            }
+            if (error is rj.cocacode.state.AbortException) return accumulator to error
+            lastError = error
+            if (ApiClient.isRetryableNetwork(error) && attempt < STREAM_MAX_ATTEMPTS) {
+                Logger.warn("Stream attempt $attempt failed (${error.message}); retrying")
+                onNotice("Network hiccup — retrying ($attempt/$STREAM_MAX_ATTEMPTS)…")
+                kotlinx.coroutines.delay(STREAM_RETRY_BASE_MS * attempt)
+                continue
+            }
+            return accumulator to error
+        }
+        return StreamAccumulator(ApiConfig.apiType) to (
+            lastError ?: ApiClient.IncompleteStreamException("stream failed after retries")
+            )
+    }
+
+    companion object {
+        private const val STREAM_MAX_ATTEMPTS = 3
+        private const val STREAM_RETRY_BASE_MS = 800L
     }
 
     private fun dumpToolDebug(apiHistory: List<RequestBuilder.ApiMessage>, postTool: Boolean) {

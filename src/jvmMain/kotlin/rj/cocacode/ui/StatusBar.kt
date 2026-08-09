@@ -3,93 +3,148 @@ package rj.cocacode.ui
 import java.io.Writer
 
 /**
- * A persistent bottom status line, like Claude Code's input-box status:
+ * Busy-status chrome that keeps native terminal scrollback.
  *
- *   ✽ Musing… (23m 48s · ↓ 16.3k tokens)
- *
- * While visible, streaming output is printed ABOVE the status line using cursor
- * tracking: inline chunks (no trailing newline) are appended to the current text
- * line rather than forcing a newline, so streamed text flows naturally while the
- * status stays pinned to the bottom.
+ * Content is always appended (never cursor-up into history). The status line
+ * lives only on the *last* row and is refreshed with `\r` + erase-line.
  */
-class StatusBar(private val out: Writer) {
+class StatusBar(
+    private val out: Writer,
+    private val terminalWidth: () -> Int = { 80 },
+    @Suppress("UNUSED_PARAMETER")
+    private val withPrompt: Boolean = true
+) {
+
+    private val lock = Any()
 
     private var visible = false
-    private var line = ""
-    private var textCol = 0
+    /** True when the cursor is on the status row (may be overwritten with \r). */
+    private var onStatusRow = false
+    private var statusText: String = ""
+    private var inputBuf: String = ""
 
-    val isVisible: Boolean get() = visible
+    val isVisible: Boolean get() = synchronized(lock) { visible }
 
-    /** Show the status on a fresh bottom line. */
-    fun show(text: String) {
-        out.write("\n" + text)
-        out.flush()
-        visible = true
-        line = text
-        textCol = 0
-    }
-
-    /** Rewrite the status line in place (no new line). */
-    fun update(text: String) {
-        if (!visible) {
-            show(text)
-        } else {
-            out.write("\r\u001b[2K" + text)
+    fun show(initialStatus: String = "") {
+        synchronized(lock) {
+            statusText = initialStatus
+            inputBuf = ""
+            out.write("\n")
+            visible = true
+            paintStatusLocked()
             out.flush()
-            line = text
         }
     }
 
-    /** Clear the status line, returning the terminal to normal. */
+    fun setStatus(text: String) {
+        synchronized(lock) {
+            statusText = text
+            if (visible && onStatusRow) {
+                paintStatusLocked()
+                out.flush()
+            }
+        }
+    }
+
+    fun setInput(buf: String) {
+        synchronized(lock) {
+            inputBuf = buf
+            if (visible && onStatusRow) {
+                paintStatusLocked()
+                out.flush()
+            }
+        }
+    }
+
+    fun update(text: String) {
+        synchronized(lock) {
+            statusText = text
+            if (!visible) {
+                inputBuf = ""
+                out.write("\n")
+                visible = true
+            }
+            if (onStatusRow || visible) {
+                paintStatusLocked()
+                out.flush()
+            }
+        }
+    }
+
     fun hide() {
-        if (visible) {
-            out.write("\r\u001b[2K")
-            out.flush()
-            visible = false
-            textCol = 0
+        synchronized(lock) {
+            if (visible) {
+                if (onStatusRow) {
+                    out.write("\r\u001b[2K")
+                    onStatusRow = false
+                }
+                out.flush()
+                visible = false
+                inputBuf = ""
+                statusText = ""
+            }
         }
     }
 
     /**
-     * Print streaming output above the status bar. The cursor is moved to the
-     * continuation column on the text line (above the status), the output is
-     * written there, then the status is rewritten on the line below.
+     * Append [text] into scrollback. Clears the status row first if needed,
+     * then restores status after a trailing newline.
      */
     fun printOutput(text: String) {
         if (text.isEmpty()) return
-        if (!visible) {
+        synchronized(lock) {
+            if (!visible) {
+                out.write(text)
+                out.flush()
+                return
+            }
+
+            if (onStatusRow) {
+                out.write("\r\u001b[2K")
+                onStatusRow = false
+            }
+
             out.write(text)
+
+            if (text.endsWith("\n")) {
+                paintStatusLocked()
+            }
             out.flush()
-            return
         }
-        // Cursor is at the end of the status line; go up to the text line.
-        out.write("\u001b[1A\r")
-        if (textCol > 0) out.write("\u001b[${textCol}C")
-        out.write(text)
-        // Advance the continuation column to the end of the last written line.
-        val lastNl = text.lastIndexOf('\n')
-        textCol = if (lastNl >= 0) visibleLength(text, lastNl + 1) else textCol + visibleLength(text)
-        // Move below the text, clear the old status line, rewrite the status.
-        out.write("\n\r\u001b[2K" + line)
-        out.flush()
     }
 
-    /** Visible length of a string, ignoring ANSI escape sequences. */
-    private fun visibleLength(s: String, from: Int = 0): Int =
-        ANSI_REGEX.replace(s.substring(from), "").length
+    private fun paintStatusLocked() {
+        val maxW = (terminalWidth() - 1).coerceAtLeast(16)
+        val mode = permissionModeBadge()
+        val core = statusText
+        val line = listOf(core, mode).filter { it.isNotBlank() }.joinToString("  ")
+        val painted = if (line.isEmpty()) "" else Ansi.dim(line)
+        out.write("\r\u001b[2K${truncateToDisplayWidth(painted, maxW)}")
+        onStatusRow = true
+    }
+
+    private fun permissionModeBadge(): String {
+        return when (rj.cocacode.state.AppStateManager.getState().permissionMode) {
+            rj.cocacode.state.PermissionMode.ACCEPT_EDITS -> "accept edits"
+            rj.cocacode.state.PermissionMode.PLAN -> "plan"
+            rj.cocacode.state.PermissionMode.BYPASS_PERMISSIONS -> "bypass"
+            rj.cocacode.state.PermissionMode.DONT_ASK -> "don't ask"
+            else -> ""
+        }
+    }
 
     companion object {
-        private val ANSI_REGEX = Regex("\\u001b\\[[0-9;]*[A-Za-z]")
+        private val ANSI_REGEX = Regex("\u001b\\[[0-9;]*[A-Za-z]")
 
-        /** ✽ + verb + "(duration · ↓ tokens)". */
+        const val TEARDROP = "\u273D"
+        const val DOWN = "\u2193"
+        private const val DOT = "\u00B7"
+
         fun formatStatus(verb: String, elapsedMs: Long, outputTokens: Int): String {
             val duration = formatDuration(elapsedMs)
             val tokens = formatTokens(outputTokens)
-            return "$TEARDROP $verb ($duration · $DOWN $tokens tokens)"
+            return "$TEARDROP $verb ($duration $DOT $DOWN $tokens tokens)"
         }
-
-        const val TEARDROP = "✽"
-        const val DOWN = "↓"
 
         fun formatDuration(ms: Long): String {
             if (ms < 60_000) {
@@ -107,12 +162,86 @@ class StatusBar(private val out: Writer) {
             }
         }
 
-        /** "900" / "1.3k" / "16.3k". */
         fun formatTokens(count: Int): String {
             if (count < 1000) return count.toString()
             val k = count / 1000.0
             val oneDecimal = (Math.round(k * 10).toDouble() / 10).toString()
             return oneDecimal.let { if (it.endsWith(".0")) it.dropLast(2) else it } + "k"
+        }
+
+        fun displayWidth(s: String, from: Int = 0): Int {
+            val plain = ANSI_REGEX.replace(s.substring(from), "")
+            var w = 0
+            var i = 0
+            while (i < plain.length) {
+                val cp = plain.codePointAt(i)
+                w += codePointWidth(cp)
+                i += Character.charCount(cp)
+            }
+            return w
+        }
+
+        fun splitIndexForWidth(s: String, maxW: Int): Int {
+            var w = 0
+            var i = 0
+            var lastGood = 0
+            while (i < s.length) {
+                if (s[i] == '\u001b') {
+                    val m = ANSI_REGEX.find(s, i) ?: break
+                    i = m.range.last + 1
+                    continue
+                }
+                val cp = s.codePointAt(i)
+                val cw = codePointWidth(cp)
+                if (w + cw > maxW) break
+                w += cw
+                i += Character.charCount(cp)
+                lastGood = i
+            }
+            return lastGood.coerceAtLeast(1).coerceAtMost(s.length)
+        }
+
+        private fun codePointWidth(cp: Int): Int {
+            if (cp == 0) return 0
+            val type = Character.getType(cp)
+            if (type == Character.NON_SPACING_MARK.toInt() ||
+                type == Character.ENCLOSING_MARK.toInt() ||
+                type == Character.COMBINING_SPACING_MARK.toInt()
+            ) {
+                return 0
+            }
+            if (cp in 0x1100..0x115F ||
+                cp in 0x2E80..0xA4CF ||
+                cp in 0xAC00..0xD7A3 ||
+                cp in 0xF900..0xFAFF ||
+                cp in 0xFE10..0xFE19 ||
+                cp in 0xFE30..0xFE6F ||
+                cp in 0xFF00..0xFF60 ||
+                cp in 0xFFE0..0xFFE6 ||
+                cp in 0x1F300..0x1FAFF ||
+                cp in 0x20000..0x3FFFD
+            ) {
+                return 2
+            }
+            return 1
+        }
+
+        fun truncateToDisplayWidth(s: String, maxWidth: Int): String {
+            if (displayWidth(s) <= maxWidth) return s
+            val plain = ANSI_REGEX.replace(s, "")
+            val sb = StringBuilder()
+            var w = 0
+            var i = 0
+            val limit = (maxWidth - 1).coerceAtLeast(1)
+            while (i < plain.length) {
+                val cp = plain.codePointAt(i)
+                val cw = codePointWidth(cp)
+                if (w + cw > limit) break
+                sb.appendCodePoint(cp)
+                w += cw
+                i += Character.charCount(cp)
+            }
+            return sb.toString() + "\u2026"
         }
     }
 }

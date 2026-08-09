@@ -4,6 +4,7 @@ import rj.cocacode.state.AppStateManager
 
 enum class PermissionMode {
     DEFAULT,
+    ACCEPT_EDITS,
     BYPASS_PERMISSIONS,
     PLAN,
     AUTO,
@@ -41,6 +42,7 @@ object PermissionManager {
         @Suppress("ALWAYS_TRUE")
         return when (val mode = state.permissionMode) {
             rj.cocacode.state.PermissionMode.DEFAULT -> PermissionMode.DEFAULT
+            rj.cocacode.state.PermissionMode.ACCEPT_EDITS -> PermissionMode.ACCEPT_EDITS
             rj.cocacode.state.PermissionMode.BYPASS_PERMISSIONS -> PermissionMode.BYPASS_PERMISSIONS
             rj.cocacode.state.PermissionMode.PLAN -> PermissionMode.PLAN
             rj.cocacode.state.PermissionMode.AUTO -> PermissionMode.AUTO
@@ -53,6 +55,7 @@ object PermissionManager {
         
         return when (mode) {
             PermissionMode.BYPASS_PERMISSIONS -> PermissionResult.Allow
+            PermissionMode.ACCEPT_EDITS -> PermissionResult.Allow
             PermissionMode.PLAN -> PermissionResult.Ask(toolName, "Plan mode: approval required")
             PermissionMode.AUTO -> {
                 val rule = rules.find { toolName.matches(Regex(it.toolPattern)) }
@@ -70,6 +73,7 @@ object PermissionManager {
                 }
             }
             PermissionMode.DEFAULT -> PermissionResult.Ask(toolName, "Permission required")
+            else -> PermissionResult.Ask(toolName, "Permission required")
         }
     }
     

@@ -26,19 +26,120 @@ class TerminalUI {
             .jna(true)
             .build()
 
+        val term = terminal!!
         reader = LineReaderBuilder.builder()
-            .terminal(terminal)
-            .completer { _, line, candidates ->
-                val cmd = line.line().split(" ").lastOrNull() ?: ""
-                rj.cocacode.commands.CommandRegistry.getNames()
-                    .filter { it.startsWith(cmd) }
-                    .forEach { candidates.add(org.jline.reader.Candidate(it)) }
-            }
+            .terminal(term)
+            .variable(LineReader.SECONDARY_PROMPT_PATTERN, Ansi.dim("... "))
+            .option(LineReader.Option.INSERT_BRACKET, true)
+            .completer(CompositeCompleter())
             .build()
+
+        val lr = reader!!
+        lr.widgets["cocacode-cycle-perm"] = org.jline.reader.Widget {
+            val next = AppStateManager.cyclePermissionMode()
+            term.writer().println()
+            term.writer().println(
+                Ansi.dim("Permission mode: ${next.name.lowercase().replace('_', ' ')}")
+            )
+            term.writer().flush()
+            true
+        }
+        try {
+            // Shift+Tab (CSI Z)
+            lr.keyMaps[LineReader.MAIN]?.bind(
+                org.jline.reader.Reference("cocacode-cycle-perm"),
+                "\u001b[Z"
+            )
+        } catch (_: Exception) { /* optional */ }
+    }
+
+    /**
+     * Completer for `/commands` (with descriptions) and `@path` file prefixes.
+     */
+    private class CompositeCompleter : org.jline.reader.Completer {
+        override fun complete(
+            reader: LineReader,
+            line: org.jline.reader.ParsedLine,
+            candidates: MutableList<org.jline.reader.Candidate>
+        ) {
+            val raw = line.line()
+            val word = line.word()
+            when {
+                raw.trimStart().startsWith("/") && !raw.contains(' ') -> {
+                    val q = word.removePrefix("/")
+                    rj.cocacode.commands.CommandRegistry.getAll()
+                        .filter { it.name.startsWith(q) }
+                        .forEach {
+                            candidates.add(
+                                org.jline.reader.Candidate(
+                                    "/" + it.name,
+                                    "/" + it.name,
+                                    null,
+                                    it.description,
+                                    null,
+                                    null,
+                                    true
+                                )
+                            )
+                        }
+                }
+                word.startsWith("@") -> {
+                    val prefix = word.removePrefix("@")
+                    completePaths(prefix).forEach { path ->
+                        candidates.add(
+                            org.jline.reader.Candidate(
+                                "@$path",
+                                "@$path",
+                                null,
+                                "file",
+                                null,
+                                null,
+                                true
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        private fun completePaths(prefix: String): List<String> {
+            val cwd = java.io.File(System.getProperty("user.dir") ?: ".")
+            val base: java.io.File
+            val namePrefix: String
+            val slash = prefix.lastIndexOf('/')
+            if (slash >= 0) {
+                base = java.io.File(cwd, prefix.substring(0, slash).ifEmpty { "." })
+                namePrefix = prefix.substring(slash + 1)
+            } else {
+                base = cwd
+                namePrefix = prefix
+            }
+            if (!base.isDirectory) return emptyList()
+            return base.listFiles()
+                ?.filter { it.name.startsWith(namePrefix) }
+                ?.sortedBy { it.name }
+                ?.take(30)
+                ?.map {
+                    val rel = if (slash >= 0) prefix.substring(0, slash + 1) + it.name else it.name
+                    if (it.isDirectory) "$rel/" else rel
+                }
+                ?: emptyList()
+        }
     }
 
     fun readLine(prompt: String = PROMPT): String? {
         return reader?.readLine(prompt)
+    }
+
+    /** Read a line with a pre-filled initial buffer (e.g. type-ahead text). */
+    fun readLine(prompt: String, initialBuffer: String): String? {
+        // Do not drain Terminal.reader here — concurrent NonBlockingReader use
+        // with LineReader hangs the next prompt (seen as "second message freeze").
+        return if (initialBuffer.isEmpty()) {
+            reader?.readLine(prompt)
+        } else {
+            reader?.readLine(prompt, "", null as org.jline.reader.MaskingCallback?, initialBuffer)
+        }
     }
 
     /** The underlying terminal writer (or null before initialize). */
@@ -48,7 +149,9 @@ class TerminalUI {
     fun terminal(): Terminal? = terminal
 
     fun print(message: String) {
-        terminal?.writer()?.println(message)
+        val w = terminal?.writer() ?: return
+        w.println(message)
+        w.flush()
     }
 
     /** Print without a trailing newline. */

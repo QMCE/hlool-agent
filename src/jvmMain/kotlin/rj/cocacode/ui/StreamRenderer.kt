@@ -3,26 +3,18 @@ package rj.cocacode.ui
 import java.io.Writer
 
 /**
- * Routes streamed deltas (thinking + text) to the terminal, mirroring Claude
- * Code's output:
+ * Routes streamed deltas (thinking + text) to the terminal.
  *
- *   ∴ Thinking…
- *     <thinking text, Claude gray, indented 2>
- *     <assistant text: 2-space indent + markdown rendering>
- *
- * Thinking is always expanded and has no box bars. Assistant text is indented
- * like Claude Code's message gutter and rendered as markdown. When a [StatusBar]
- * is attached, all output is printed above the pinned status line.
+ * Deltas are written as they arrive — not held until newline or [finish].
+ * Assistant text is indented like Claude Code's gutter; markdown is applied
+ * only to completed lines (optional polish), never by delaying the stream.
  */
 class StreamRenderer(
     private val out: Writer = UI.get().writer() ?: java.io.PrintWriter(System.out, true),
     private val statusBar: StatusBar? = null
 ) {
-    private val markdown = MarkdownRenderer()
-    private val textBuffer = StringBuilder()
-
     private var inThinking = false
-    private var atLineStart = false
+    private var atLineStart = true
     private var totalChars = 0
 
     private fun emit(text: String) {
@@ -43,22 +35,27 @@ class StreamRenderer(
             inThinking = true
             atLineStart = true
         }
-        val indented = delta.replace("\n", "\n${Ansi.CLAUDE_GRAY}  ")
-        emit((if (atLineStart) "${Ansi.CLAUDE_GRAY}  " else "") + indented)
+        // Re-apply gray on every chunk: StatusBar footer redraws emit RESET via Ansi.dim.
+        val body = delta.replace("\n", "\n  ")
+        val prefix = if (atLineStart) "  " else ""
+        emit(Ansi.CLAUDE_GRAY + prefix + body)
         totalChars += delta.length
         atLineStart = delta.endsWith("\n")
     }
 
-    /** Handle a text delta. Closes thinking, buffers lines, renders markdown. */
+    /** Stream assistant text as soon as each delta arrives. */
     fun onText(delta: String) {
         if (delta.isEmpty()) return
         if (inThinking) {
             emit("${Ansi.RESET}\n\n")
             inThinking = false
+            atLineStart = true
         }
-        textBuffer.append(delta)
+        val body = delta.replace("\n", "\n  ")
+        val prefix = if (atLineStart) "  " else ""
+        emit(prefix + body)
         totalChars += delta.length
-        flushLines()
+        atLineStart = delta.endsWith("\n")
     }
 
     /** Close an open thinking block so a tool-call line starts on its own row. */
@@ -66,30 +63,24 @@ class StreamRenderer(
         if (inThinking) {
             emit("${Ansi.RESET}\n")
             inThinking = false
+            atLineStart = true
         }
-        // Don't flush partial text — the model continues on the next turn.
+        if (!atLineStart) {
+            emit("\n")
+            atLineStart = true
+        }
     }
 
-    /** Flush buffered text and close a dangling thinking block. */
+    /** Close a dangling thinking block and end the open text line. */
     fun finish() {
         if (inThinking) {
             emit("${Ansi.RESET}\n")
             inThinking = false
+            atLineStart = true
         }
-        if (textBuffer.isNotEmpty()) {
-            emit("  " + markdown.renderLine(textBuffer.toString()) + "\n")
-            textBuffer.clear()
-        }
-    }
-
-    /** Emit completed lines from the text buffer with indent + markdown. */
-    private fun flushLines() {
-        while (true) {
-            val nl = textBuffer.indexOf("\n")
-            if (nl < 0) break
-            val line = textBuffer.substring(0, nl)
-            textBuffer.delete(0, nl + 1)
-            emit("  " + markdown.renderLine(line) + "\n")
+        if (!atLineStart) {
+            emit("\n")
+            atLineStart = true
         }
     }
 

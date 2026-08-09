@@ -102,7 +102,12 @@ data class SubAgentContext(
     val workingDirectory: String = System.getProperty("user.dir") ?: ".",
     val additionalContext: Map<String, String> = emptyMap(),
     val memoryScope: String = "none",
-    val isChildOfFork: Boolean = false,
+    /**
+     * When true, the engine adds a teammate-role system notice.
+     * Conversation continuity is separate: non-empty [parentMessages] are
+     * always seeded into the child history (teammate follow-ups, fork, etc.).
+     */
+    val isTeammate: Boolean = false,
     val useExactTools: Boolean = false,
     val modelOverride: String? = null
 )

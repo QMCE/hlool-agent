@@ -229,9 +229,10 @@ object TeammateManager {
         val context = SubAgentContext(
             definition = definition,
             task = task,
+            // Prior teammate turns — engine seeds these when non-empty.
             parentMessages = teammate.historySnapshot().takeLast(40),
             workingDirectory = System.getProperty("user.dir") ?: ".",
-            isChildOfFork = true
+            isTeammate = true
         )
 
         val result = SubAgentEngineManager.getEngine().execute(context)

@@ -47,7 +47,7 @@ class CocaCodeCLI : CliktCommand(
         val engine = rj.cocacode.engine.QueryEngineManager.getEngine()
         if (resume) engine.restoreLastSession()
         val out = java.io.PrintWriter(System.out, true)
-        val statusBar = rj.cocacode.ui.StatusBar(out)
+        val statusBar = rj.cocacode.ui.StatusBar(out, withPrompt = false)
         val renderer = rj.cocacode.ui.StreamRenderer(out, statusBar)
         val startTime = System.currentTimeMillis()
 
@@ -59,7 +59,7 @@ class CocaCodeCLI : CliktCommand(
                 while (isActive) {
                     kotlinx.coroutines.delay(200)
                     val elapsed = System.currentTimeMillis() - startTime
-                    statusBar.update(rj.cocacode.ui.StatusBar.formatStatus("Musing…", elapsed, renderer.estimatedTokens()))
+                    statusBar.setStatus(rj.cocacode.ui.StatusBar.formatStatus("Musing…", elapsed, renderer.estimatedTokens()))
                 }
             }
 
@@ -69,9 +69,11 @@ class CocaCodeCLI : CliktCommand(
                 onText = { renderer.onText(it) },
                 onToolCall = { name, desc ->
                     renderer.beforeToolCall()
+                    val descPart =
+                        if (desc.isNotBlank()) " " + rj.cocacode.ui.Ansi.dim("($desc)") else ""
                     statusBar.printOutput(
-                        rj.cocacode.ui.Ansi.gray("●") + " " + rj.cocacode.ui.Ansi.bold(name) +
-                            if (desc.isNotBlank()) " " + rj.cocacode.ui.Ansi.dim("($desc)") else "" + "\n"
+                        rj.cocacode.ui.Ansi.gray("●") + " " +
+                            rj.cocacode.ui.Ansi.bold(name) + descPart + "\n"
                     )
                 }
             )

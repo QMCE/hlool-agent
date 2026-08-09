@@ -269,15 +269,20 @@ object RequestBuilder {
         }
 
         val textBlocks = blocks.filterIsInstance<ApiContentBlock.TextBlock>()
+        val thinkingBlocks = blocks.filterIsInstance<ApiContentBlock.ThinkingBlock>()
         val toolUses = blocks.filterIsInstance<ApiContentBlock.ToolUseBlock>()
-        if (textBlocks.isEmpty() && toolUses.isEmpty()) return
+        if (textBlocks.isEmpty() && thinkingBlocks.isEmpty() && toolUses.isEmpty()) return
 
         val text = textBlocks.joinToString("") { it.text }
+        val reasoning = thinkingBlocks.joinToString("") { it.thinking }
         out.add(buildJsonObject {
             put("role", "assistant")
-            // OpenAI accepts `content: null` on assistant messages that carry
-            // tool_calls; emit an explicit null so the field is always present.
-            put("content", text.ifBlank { null })
+            // Keep content = visible reply only; reasoning goes in its own field
+            // so chat proxies still accept tool_calls + history replay.
+            if (text.isBlank()) put("content", "") else put("content", text)
+            if (reasoning.isNotBlank()) {
+                put("reasoning_content", reasoning)
+            }
             if (toolUses.isNotEmpty()) {
                 put("tool_calls", buildJsonArray {
                     toolUses.forEach { tu ->
@@ -444,6 +449,10 @@ class StreamAccumulator(private val apiType: ApiType) {
     private var stopReason: String? = null
     private var usage = ApiUsage()
 
+    /** Set when an SSE payload carries a top-level `error` object. */
+    var streamError: String? = null
+        private set
+
     // Anthropic tool_use block state (accumulated across deltas).
     private var anBlockType: String? = null
     private var anBlockId: String? = null
@@ -467,16 +476,32 @@ class StreamAccumulator(private val apiType: ApiType) {
         } catch (e: Exception) {
             return StreamDelta()
         }
+        // Chat proxies often return 200 + `data: {"error":...}` instead of HTTP 4xx.
+        root["error"]?.let { err ->
+            streamError = when (err) {
+                is JsonPrimitive -> err.contentOrNull
+                is JsonObject -> err["message"]?.jsonPrimitive?.contentOrNull
+                    ?: err["msg"]?.jsonPrimitive?.contentOrNull
+                    ?: err.toString()
+                else -> err.toString()
+            } ?: "API stream error"
+            return StreamDelta()
+        }
         return if (apiType == ApiType.MESSAGES) feedAnthropic(root) else feedOpenAi(root)
     }
 
     /** Flush accumulated OpenAI tool calls into [toolUses]. */
     fun finalize() {
         if (apiType != ApiType.MESSAGES && oaiToolCalls.isNotEmpty()) {
-            oaiToolCalls.values.forEach { call ->
+            oaiToolCalls.forEach { (index, call) ->
+                val id = call.id.toString().ifBlank {
+                    // Many chat proxies omit ids on streamed tool_calls; empty
+                    // tool_call_id makes the follow-up request fail / return empty.
+                    "call_${index}_${System.nanoTime().toString(36)}"
+                }
                 toolUses.add(
                     ApiContentBlock.ToolUseBlock(
-                        id = call.id.toString(),
+                        id = id,
                         name = call.name.toString(),
                         input = parseJsonMap(call.args.toString())
                     )
@@ -550,31 +575,69 @@ class StreamAccumulator(private val apiType: ApiType) {
 
     private fun feedOpenAi(root: JsonObject): StreamDelta {
         val choice = root["choices"]?.jsonArray?.firstOrNull()?.jsonObject ?: return StreamDelta()
+        // Some proxies emit `message` instead of `delta` on the final chunk.
         val delta = choice["delta"]?.jsonObject
+            ?: choice["message"]?.jsonObject
 
-        var text = ""
-        var thinking = ""
-        (delta?.get("content") as? JsonPrimitive)?.contentOrNull?.let { text = it }
-        (delta?.get("reasoning_content") as? JsonPrimitive)?.contentOrNull?.let { thinking = it }
+        var text = extractOpenAiText(delta?.get("content"))
+        var thinking = extractOpenAiText(delta?.get("reasoning_content"))
         if (thinking.isEmpty()) {
-            (delta?.get("reasoning") as? JsonPrimitive)?.contentOrNull?.let { thinking = it }
+            thinking = extractOpenAiText(delta?.get("reasoning"))
         }
         if (text.isNotEmpty()) textBuf.append(text)
         if (thinking.isNotEmpty()) thinkingBuf.append(thinking)
 
         delta?.get("tool_calls")?.jsonArray?.forEach { tc ->
             val obj = tc.jsonObject
-            val index = obj["index"]?.jsonPrimitive?.intOrNull ?: 0
+            val index = obj["index"]?.jsonPrimitive?.intOrNull
+                ?: obj["index"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+                ?: 0
             val call = oaiToolCalls.getOrPut(index) { OaiToolCall() }
-            (obj["id"] as? JsonPrimitive)?.contentOrNull?.let { call.id.append(it) }
+            // Id/name are often repeated on every delta — append would corrupt
+            // tool_call_id (call_abccall_abc) and abort the follow-up turn.
+            (obj["id"] as? JsonPrimitive)?.contentOrNull?.let { id ->
+                if (call.id.isEmpty() && id.isNotBlank()) call.id.append(id)
+            }
             obj["function"]?.jsonObject?.let { fn ->
-                (fn["name"] as? JsonPrimitive)?.contentOrNull?.let { call.name.append(it) }
+                (fn["name"] as? JsonPrimitive)?.contentOrNull?.let { name ->
+                    if (call.name.isEmpty() && name.isNotBlank()) call.name.append(name)
+                }
                 (fn["arguments"] as? JsonPrimitive)?.contentOrNull?.let { call.args.append(it) }
             }
         }
 
         choice["finish_reason"]?.jsonPrimitive?.contentOrNull?.let { stopReason = it }
         return StreamDelta(text = text, thinking = thinking)
+    }
+
+    /**
+     * OpenAI-compatible content may be a plain string or an array of parts
+     * (`[{type:text,text:...}]`). Only handling strings dropped whole replies
+     * for some chat proxies — context then lost the previous assistant turn.
+     */
+    private fun extractOpenAiText(el: JsonElement?): String {
+        if (el == null || el is JsonNull) return ""
+        when (el) {
+            is JsonPrimitive -> return el.contentOrNull ?: ""
+            is JsonArray -> {
+                return el.joinToString("") { part ->
+                    when (part) {
+                        is JsonPrimitive -> part.contentOrNull ?: ""
+                        is JsonObject -> {
+                            part["text"]?.jsonPrimitive?.contentOrNull
+                                ?: part["content"]?.jsonPrimitive?.contentOrNull
+                                ?: ""
+                        }
+                        else -> ""
+                    }
+                }
+            }
+            is JsonObject -> {
+                return el["text"]?.jsonPrimitive?.contentOrNull
+                    ?: el["content"]?.let { extractOpenAiText(it) }
+                    ?: ""
+            }
+        }
     }
 
     private fun parseJsonMap(json: String): Map<String, Any> = try {

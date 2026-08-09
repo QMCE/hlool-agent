@@ -42,6 +42,8 @@ object ApiClient {
                 json(Json { ignoreUnknownKeys = true })
             }
             install(HttpTimeout) {
+                // Non-stream defaults; stream() overrides per-request (must not
+                // kill long thinking / tool rounds with a 120s wall clock).
                 requestTimeoutMillis = ApiConfig.timeout
                 connectTimeoutMillis = 30_000
                 socketTimeoutMillis = ApiConfig.timeout
@@ -120,10 +122,14 @@ object ApiClient {
     /**
      * Perform a streaming (SSE) POST request. `data:` payloads are passed to
      * [onChunk] one at a time; `data: [DONE]` terminates the stream.
+     *
+     * Request/socket timeouts are relaxed: a wall-clock [ApiConfig.timeout] on
+     * the whole SSE body was cutting long thinking mid-reply ("random interrupt").
      */
     suspend fun stream(
         endpoint: String,
         body: JsonElement,
+        isAborted: () -> Boolean = { false },
         onChunk: (String) -> Unit
     ): Result<Unit> {
         if (ApiConfig.apiKey.isBlank()) {
@@ -134,14 +140,20 @@ object ApiClient {
                 applyAuth(this)
                 contentType(ContentType.Application.Json)
                 setBody(body.toString())
+                timeout {
+                    requestTimeoutMillis = HttpTimeout.INFINITE_TIMEOUT_MS
+                    socketTimeoutMillis = STREAM_SOCKET_IDLE_MS
+                    connectTimeoutMillis = 30_000
+                }
             }.execute { response ->
                 if (!response.status.isSuccess()) {
                     return@execute Result.failure(HttpException(response.status, "Stream ${response.status}"))
                 }
                 val channel = response.bodyAsChannel()
-                // SSE is line-oriented: read line-by-line, handing each `data:`
-                // payload to onChunk as it arrives.
                 while (true) {
+                    if (isAborted()) {
+                        return@execute Result.failure(rj.cocacode.state.AbortException("Aborted"))
+                    }
                     val line = channel.readUTF8Line(1_048_576) ?: break
                     if (line.startsWith("data:")) {
                         val data = line.removePrefix("data:").trimStart()
@@ -154,6 +166,9 @@ object ApiClient {
             Result.failure(e)
         }
     }
+
+    /** Idle gap allowed between SSE lines (thinking can be silent for a while). */
+    private const val STREAM_SOCKET_IDLE_MS = 600_000L
 
     /**
      * Convert an arbitrary value (maps, lists, primitives, null) into a

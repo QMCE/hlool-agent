@@ -8,9 +8,13 @@ import rj.cocacode.tools.ToolResult
 import rj.cocacode.tools.ToolRegistry
 import rj.cocacode.utils.generateUuid
 import rj.cocacode.services.api.ApiClient
+import rj.cocacode.services.api.ApiContentBlock
 import rj.cocacode.services.api.RequestBuilder
-import rj.cocacode.services.api.ResponseParser
+import rj.cocacode.services.api.StreamAccumulator
+import rj.cocacode.services.api.ToolSpec
+import rj.cocacode.services.api.ToolSchemas
 import rj.cocacode.config.ApiConfig
+import rj.cocacode.config.ApiType
 import rj.cocacode.state.AbortController
 import rj.cocacode.utils.Logger
 
@@ -21,10 +25,10 @@ import rj.cocacode.utils.Logger
  * - Independent message history per subagent
  * - Restricted tool access based on agent definition and tool filtering
  * - Turn limits and timeouts
- * - Streaming response handling
+ * - Streaming model calls (same path as the main QueryEngine)
  * - Tool use loop (agent thinks, calls tools, processes results)
  * - Persistent agent memory loading and saving
- * - Fork subagent support
+ * - Teammate / fork conversation seeding via [SubAgentContext.parentMessages]
  * - Background (async) execution
  */
 class SubAgentEngine(
@@ -39,137 +43,205 @@ class SubAgentEngine(
 
     /**
      * Execute a subagent with the given context.
+     *
+     * Optional [onThinking] / [onText] receive streamed deltas (teammates may
+     * ignore them; one-shot Task callers can surface them later).
      */
     suspend fun execute(
         context: SubAgentContext,
-        abortController: AbortController = AbortController()
+        abortController: AbortController = AbortController(),
+        onThinking: (String) -> Unit = {},
+        onText: (String) -> Unit = {}
     ): SubAgentResult {
         val startTime = System.currentTimeMillis()
         val maxTurns = context.definition.maxTurns.coerceAtMost(MAX_SUBAGENT_TURNS)
-        val isFork = context.isChildOfFork
         val isAsync = context.definition.isAsync
 
-        // Build subagent message history
-        val messages = mutableListOf<Message>()
-
-        // Build system prompt (with memory if applicable)
         val systemPrompt = buildSystemPrompt(context)
-        messages.add(Message(
-            id = generateUuid(),
-            type = MessageType.SYSTEM,
-            content = systemPrompt
-        ))
-
-        // For fork children, add forked prefix messages
-        if (isFork) {
-            messages.addAll(context.parentMessages.filter {
-                it.type != MessageType.SYSTEM
-            }.takeLast(50))
-        }
-
-        // Add task message
-        messages.add(Message(
-            id = generateUuid(),
-            type = MessageType.USER,
-            content = context.task
-        ))
-
-        // Determine model to use
-        val model = resolveModel(context)
-
-        // Resolve available tools for this agent
+        val model = resolveModel(context) ?: ApiConfig.model
         val availableTools = resolveAgentToolsFor(context.definition, isAsync)
         val toolMap = availableTools.associateBy { it.name }
+        val toolSpecs = availableTools.map { tool ->
+            ToolSpec(
+                name = tool.name,
+                description = tool.description,
+                inputSchema = ToolSchemas.schemaForTool(tool.name)
+            )
+        }
+
+        // Display / result history (Message list for callers).
+        val messages = mutableListOf<Message>()
+        messages.add(
+            Message(id = generateUuid(), type = MessageType.SYSTEM, content = systemPrompt)
+        )
+
+        // Wire-format history for the streaming tool loop.
+        val apiHistory = mutableListOf<RequestBuilder.ApiMessage>()
+
+        // Seed prior conversation when provided (teammate continuity, fork, etc.).
+        // Gated on non-empty parentMessages — not on a fork/teammate flag.
+        for (msg in context.parentMessages.filter { it.type != MessageType.SYSTEM }.takeLast(50)) {
+            msg.toApiMessage()?.let { apiHistory.add(it) }
+            messages.add(msg)
+        }
+
+        apiHistory.add(RequestBuilder.ApiMessage(role = "user", text = context.task))
+        messages.add(
+            Message(id = generateUuid(), type = MessageType.USER, content = context.task)
+        )
 
         var turnCount = 0
         var toolCallCount = 0
         var lastError: String? = null
         var memoryUpdated = false
+        var lastText = ""
 
-        // Main execution loop
         while (turnCount < maxTurns) {
             if (abortController.isAborted) {
-                return buildResult(context, messages, "Agent execution aborted: ${abortController.reason ?: "Cancelled"}", true, turnCount, toolCallCount, isAsync)
+                return buildResult(
+                    context, messages,
+                    "Agent execution aborted: ${abortController.reason ?: "Cancelled"}",
+                    true, turnCount, toolCallCount, isAsync
+                )
             }
 
             val elapsed = System.currentTimeMillis() - startTime
             if (elapsed > SUBAGENT_TIMEOUT_MS) {
-                return buildResult(context, messages, "Agent execution timed out after ${SUBAGENT_TIMEOUT_MS / 1000}s", true, turnCount, toolCallCount, isAsync)
+                return buildResult(
+                    context, messages,
+                    "Agent execution timed out after ${SUBAGENT_TIMEOUT_MS / 1000}s",
+                    true, turnCount, toolCallCount, isAsync
+                )
             }
 
             try {
-                val response = withTimeout(SUBAGENT_TIMEOUT_MS - elapsed) {
-                    callModel(messages.toList(), model, availableTools)
+                val turn = withTimeout(SUBAGENT_TIMEOUT_MS - elapsed) {
+                    streamModelTurn(
+                        systemPrompt = systemPrompt,
+                        model = model,
+                        apiHistory = apiHistory,
+                        tools = toolSpecs,
+                        onThinking = onThinking,
+                        onText = onText
+                    )
                 }
 
-                if (response.content.isNotBlank()) {
-                    messages.add(Message(
-                        id = generateUuid(),
-                        type = MessageType.ASSISTANT,
-                        content = response.content
-                    ))
-                }
-
-                // If no tool calls, done
-                if (response.toolCalls.isEmpty()) {
+                if (turn.isError) {
+                    lastError = turn.errorMessage
+                    messages.add(
+                        Message(
+                            id = generateUuid(),
+                            type = MessageType.TOOL_RESULT,
+                            content = "Error: ${turn.errorMessage}",
+                            isError = true
+                        )
+                    )
                     break
                 }
 
-                // Execute tool calls
-                for ((toolName, toolInput) in response.toolCalls) {
-                    turnCount++
+                val text = turn.text
+                val thinking = turn.thinking
+                val toolUses = turn.toolUses
 
-                    val tool = toolMap[toolName]
-                    if (tool == null) {
-                        messages.add(Message(
+                // Append assistant turn to wire history (thinking required for Anthropic).
+                val assistantBlocks = mutableListOf<ApiContentBlock>()
+                if (ApiConfig.apiType == ApiType.MESSAGES && thinking.isNotBlank()) {
+                    assistantBlocks.add(ApiContentBlock.ThinkingBlock(thinking))
+                }
+                if (text.isNotBlank()) assistantBlocks.add(ApiContentBlock.TextBlock(text))
+                assistantBlocks.addAll(toolUses)
+                apiHistory.add(
+                    RequestBuilder.ApiMessage(
+                        role = "assistant",
+                        text = text,
+                        blocks = assistantBlocks
+                    )
+                )
+
+                if (text.isNotBlank()) {
+                    lastText = text
+                    messages.add(
+                        Message(
                             id = generateUuid(),
-                            type = MessageType.TOOL_RESULT,
-                            content = "Error: Tool '$toolName' is not available to this agent",
+                            type = MessageType.ASSISTANT,
+                            content = text
+                        )
+                    )
+                }
+
+                if (toolUses.isEmpty()) break
+
+                // Execute tools and append tool_result user message.
+                val resultBlocks = mutableListOf<ApiContentBlock>()
+                for (toolUse in toolUses) {
+                    turnCount++
+                    val tool = toolMap[toolUse.name]
+                    val result = if (tool == null) {
+                        ToolResult(
+                            text = "Error: Tool '${toolUse.name}' is not available to this agent",
                             isError = true
-                        ))
-                        continue
+                        )
+                    } else {
+                        executeToolWithRetry(tool, toolUse.input)
                     }
 
-                    // Execute tool
-                    val result = executeToolWithRetry(tool, toolInput)
+                    messages.add(
+                        Message(
+                            id = generateUuid(),
+                            type = MessageType.TOOL,
+                            content = "Tool: ${toolUse.name}"
+                        )
+                    )
+                    messages.add(
+                        Message(
+                            id = generateUuid(),
+                            type = MessageType.TOOL_RESULT,
+                            content = if (result.isError) "Error: ${result.text}" else result.text,
+                            isError = result.isError,
+                            toolUseId = toolUse.id
+                        )
+                    )
 
-                    // Add tool call message
-                    messages.add(Message(
-                        id = generateUuid(),
-                        type = MessageType.TOOL,
-                        content = "Tool: $toolName"
-                    ))
-
-                    // Add tool result message
-                    messages.add(Message(
-                        id = generateUuid(),
-                        type = MessageType.TOOL_RESULT,
-                        content = if (result.isError) "Error: ${result.text}" else result.text,
-                        isError = result.isError
-                    ))
+                    resultBlocks.add(
+                        ApiContentBlock.ToolResultBlock(
+                            toolUseId = toolUse.id,
+                            content = result.text,
+                            isError = result.isError
+                        )
+                    )
 
                     toolCallCount++
                     if (result.isError) lastError = result.text
                 }
-
+                apiHistory.add(
+                    RequestBuilder.ApiMessage(
+                        role = "user",
+                        text = "",
+                        blocks = resultBlocks
+                    )
+                )
             } catch (e: TimeoutCancellationException) {
                 return buildResult(context, messages, "Agent timed out", true, turnCount, toolCallCount, isAsync)
             } catch (e: Exception) {
                 Logger.warn("SubAgent execution error at turn $turnCount: ${e.message}")
                 lastError = e.message ?: "Unknown error"
-                messages.add(Message(
-                    id = generateUuid(),
-                    type = MessageType.TOOL_RESULT,
-                    content = "Error on turn $turnCount: ${e.message}",
-                    isError = true
-                ))
+                messages.add(
+                    Message(
+                        id = generateUuid(),
+                        type = MessageType.TOOL_RESULT,
+                        content = "Error on turn $turnCount: ${e.message}",
+                        isError = true
+                    )
+                )
             }
         }
 
-        // Extract final output
-        val output = extractFinalOutput(messages)
+        if (turnCount >= maxTurns && lastText.isNotBlank()) {
+            lastText += "\n\n[stopped: reached max $maxTurns tool turns]"
+        }
 
-        // Save agent memory if configured
+        val output = extractFinalOutput(messages).ifBlank { lastText }
+
         if (context.definition.memoryScope != "none" && output.isNotBlank()) {
             try {
                 val scope = AgentMemoryScope.fromKey(context.definition.memoryScope)
@@ -230,12 +302,59 @@ class SubAgentEngine(
     }
 
     /**
-     * Build system prompt with memory context.
+     * One streamed model turn: POST SSE, accumulate text/thinking/tool_uses.
      */
+    private suspend fun streamModelTurn(
+        systemPrompt: String,
+        model: String,
+        apiHistory: List<RequestBuilder.ApiMessage>,
+        tools: List<ToolSpec>,
+        onThinking: (String) -> Unit,
+        onText: (String) -> Unit
+    ): StreamedTurn {
+        val request = RequestBuilder.build(
+            model = model,
+            system = systemPrompt,
+            messages = apiHistory,
+            tools = tools,
+            maxTokens = ApiConfig.maxTokens,
+            stream = true,
+            apiType = ApiConfig.apiType,
+            thinkingBudget = ApiConfig.thinkingBudget
+        )
+
+        val accumulator = StreamAccumulator(ApiConfig.apiType)
+        val streamResult = ApiClient.stream(
+            RequestBuilder.messagesEndpoint(),
+            request
+        ) { data ->
+            val delta = accumulator.feed(data)
+            if (delta.thinking.isNotEmpty()) onThinking(delta.thinking)
+            if (delta.text.isNotEmpty()) onText(delta.text)
+        }
+        accumulator.finalize()
+
+        val error = streamResult.exceptionOrNull()
+        if (error != null) {
+            return StreamedTurn(
+                text = "",
+                thinking = "",
+                toolUses = emptyList(),
+                isError = true,
+                errorMessage = error.message ?: "API stream failed"
+            )
+        }
+
+        return StreamedTurn(
+            text = accumulator.text,
+            thinking = accumulator.thinking,
+            toolUses = accumulator.toolUsesList
+        )
+    }
+
     private suspend fun buildSystemPrompt(context: SubAgentContext): String {
         val sb = StringBuilder()
 
-        // Dynamic prompt builder
         if (context.definition.getSystemPrompt != null) {
             val dynamicPrompt = context.definition.getSystemPrompt.invoke(context)
             if (!dynamicPrompt.isNullOrBlank()) {
@@ -243,19 +362,17 @@ class SubAgentEngine(
             }
         }
 
-        // Static system prompt
         if (sb.isEmpty() && context.definition.systemPrompt.isNotBlank()) {
             sb.appendLine(context.definition.systemPrompt)
         }
 
-        // Fork notice
-        if (context.isChildOfFork) {
+        // Teammate role notice (explicit flag — not overloaded onto fork).
+        if (context.isTeammate) {
             sb.appendLine()
             sb.appendLine("You are a teammate worker in a team led by the main agent. Execute the given task autonomously and completely.")
             sb.appendLine("Your text output is delivered back to the leader. If you need to ask something, make it part of your final report.")
         }
 
-        // Memory prompt
         if (context.definition.memoryScope != "none") {
             val scope = AgentMemoryScope.fromKey(context.definition.memoryScope)
             if (scope != AgentMemoryScope.NONE) {
@@ -275,9 +392,6 @@ class SubAgentEngine(
         return sb.toString().trim()
     }
 
-    /**
-     * Resolve model override.
-     */
     private fun resolveModel(context: SubAgentContext): String? {
         if (context.modelOverride != null) return context.modelOverride
         if (context.definition.model != null) {
@@ -287,9 +401,6 @@ class SubAgentEngine(
         return null
     }
 
-    /**
-     * Resolve and filter tools available to the agent.
-     */
     private fun resolveAgentToolsFor(
         definition: AgentDefinition,
         isAsync: Boolean
@@ -303,9 +414,6 @@ class SubAgentEngine(
         )
     }
 
-    /**
-     * Execute a tool with retry logic.
-     */
     private suspend fun executeToolWithRetry(
         tool: Tool,
         input: Map<String, Any>,
@@ -314,7 +422,7 @@ class SubAgentEngine(
         var lastError: Exception? = null
         for (attempt in 0..retries) {
             try {
-                return tool.execute(input)
+                return withContext(Dispatchers.IO) { tool.execute(input) }
             } catch (e: Exception) {
                 lastError = e
                 if (attempt < retries) delay(1000L * (attempt + 1))
@@ -326,79 +434,6 @@ class SubAgentEngine(
         )
     }
 
-    /**
-     * Call the LLM API via ApiClient.
-     * Parses the response into content and tool calls.
-     */
-    private suspend fun callModel(
-        messages: List<Message>,
-        model: String?,
-        tools: List<rj.cocacode.tools.Tool> = emptyList()
-    ): SubAgentModelResponse {
-        val finalModel = model ?: ApiConfig.model
-        val systemPrompt = messages.firstOrNull { it.type == MessageType.SYSTEM }?.content ?: ""
-        val apiMessages = messages.filter { it.type != MessageType.SYSTEM }.map { msg ->
-            RequestBuilder.ApiMessage(
-                role = when (msg.type) {
-                    MessageType.USER -> "user"
-                    MessageType.ASSISTANT -> "assistant"
-                    MessageType.TOOL -> "assistant"
-                    MessageType.TOOL_RESULT -> "user"
-                    MessageType.SYSTEM -> "system"
-                    else -> "user"
-                },
-                text = msg.content
-            )
-        }
-
-        val toolSpecs = tools.map { tool ->
-            rj.cocacode.services.api.ToolSpec(
-                name = tool.name,
-                description = tool.description,
-                inputSchema = rj.cocacode.services.api.ToolSchemas.schemaForTool(tool.name)
-            )
-        }
-
-        val request = RequestBuilder.build(
-            model = finalModel,
-            system = systemPrompt,
-            messages = apiMessages,
-            tools = toolSpecs,
-            maxTokens = 4096,
-            stream = false,
-            thinkingBudget = ApiConfig.thinkingBudget
-        )
-
-        val result = ApiClient.post(RequestBuilder.messagesEndpoint(), request)
-        return result.fold(
-            onSuccess = { json ->
-                val parsed = try {
-                    ResponseParser.parse(ApiConfig.baseUrl, json)
-                } catch (e: Exception) {
-                    return@fold SubAgentModelResponse(
-                        content = "",
-                        isError = true,
-                        errorMessage = "Failed to parse API response: ${e.message}"
-                    )
-                }
-                SubAgentModelResponse(
-                    content = parsed.text,
-                    toolCalls = parsed.toolUses.map { it.name to it.input }
-                )
-            },
-            onFailure = { error ->
-                SubAgentModelResponse(
-                    content = "",
-                    isError = true,
-                    errorMessage = error.message ?: "API call failed"
-                )
-            }
-        )
-    }
-
-    /**
-     * Extract final output from message list.
-     */
     private fun extractFinalOutput(messages: List<Message>): String {
         val lastAssistant = messages.lastOrNull { it.type == MessageType.ASSISTANT }
         if (lastAssistant != null) return cleanOutput(lastAssistant.content)
@@ -407,9 +442,6 @@ class SubAgentEngine(
         return lastSystem?.content ?: "No output produced"
     }
 
-    /**
-     * Clean output by removing tool call artifacts.
-     */
     private fun cleanOutput(content: String): String {
         return content
             .replace(Regex("<tool_call>.*?</tool_call>", RegexOption.DOT_MATCHES_ALL), "")
@@ -419,9 +451,6 @@ class SubAgentEngine(
             .trim()
     }
 
-    /**
-     * Build a SubAgentResult quickly.
-     */
     private fun buildResult(
         context: SubAgentContext,
         messages: MutableList<Message>,
@@ -444,15 +473,24 @@ class SubAgentEngine(
     }
 }
 
-/**
- * SubAgent model response.
- */
-data class SubAgentModelResponse(
-    val content: String,
-    val toolCalls: List<Pair<String, Map<String, Any>>> = emptyList(),
+/** One completed streamed model turn. */
+private data class StreamedTurn(
+    val text: String,
+    val thinking: String,
+    val toolUses: List<ApiContentBlock.ToolUseBlock>,
     val isError: Boolean = false,
     val errorMessage: String? = null
 )
+
+/** Convert a seed [Message] into a wire-format API message. */
+private fun Message.toApiMessage(): RequestBuilder.ApiMessage? {
+    val role = when (type) {
+        MessageType.USER, MessageType.TOOL_RESULT -> "user"
+        MessageType.ASSISTANT, MessageType.TOOL -> "assistant"
+        MessageType.SYSTEM, MessageType.ATTACHMENT -> return null
+    }
+    return RequestBuilder.ApiMessage(role = role, text = content)
+}
 
 /**
  * Singleton manager for SubAgentEngine.

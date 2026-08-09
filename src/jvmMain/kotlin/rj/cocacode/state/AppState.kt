@@ -12,7 +12,7 @@ data class AppState(
     val toolPermissionContext: ToolPermissionContext? = null,
     val isAuthenticated: Boolean = false,
     val sessionId: String? = null,
-    val permissionMode: PermissionMode = PermissionMode.DEFAULT,
+    val permissionMode: PermissionMode = PermissionMode.BYPASS_PERMISSIONS,
     val currentModel: String = "claude-sonnet-4-20250514",
     val theme: String = "default",
     val debugMode: Boolean = false
@@ -23,6 +23,7 @@ data class AppState(
  */
 enum class PermissionMode {
     DEFAULT,
+    ACCEPT_EDITS,
     BYPASS_PERMISSIONS,
     PLAN,
     AUTO,
@@ -93,7 +94,25 @@ object AppStateManager {
         _state = _state.copy(theme = theme)
         listeners.forEach { it(_state) }
     }
-    
+
+    fun setPermissionMode(mode: PermissionMode) {
+        _state = _state.copy(permissionMode = mode)
+        listeners.forEach { it(_state) }
+    }
+
+    fun cyclePermissionMode(): PermissionMode {
+        val order = listOf(
+            PermissionMode.DEFAULT,
+            PermissionMode.ACCEPT_EDITS,
+            PermissionMode.PLAN,
+            PermissionMode.BYPASS_PERMISSIONS
+        )
+        val cur = _state.permissionMode
+        val next = order[(order.indexOf(cur).let { if (it < 0) 0 else it } + 1) % order.size]
+        setPermissionMode(next)
+        return next
+    }
+
     /**
      * Reload configuration.
      */

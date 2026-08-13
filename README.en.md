@@ -4,33 +4,26 @@ Hlool Agent — AI Coding Assistant for [SHUAI API](https://api.shuaiapi.com)
 
 [简体中文](README.md) | [正體中文](README.hant.md)
 
-### Overview
+### One-key auth (Access Token)
 
-Hlool Agent is built for **SHUAI API** (`api.shuaiapi.com`). One console **sk-** key unlocks the same OpenAI-compatible model surface as the web app.
-
-### Quick start
-
-```bash
-./gradlew jvmFatJar
-java -jar build/libs/hlool-agent-*.jar -i
-```
+**No manual sk- paste.** The credential is the console **Access Token**. On login, Hlool Agent auto-claims and persists a relay sk- named `Hlool Agent`.
 
 ```text
-/login              # open console login, then paste sk-
-/login sk-xxxx      # validate + save
-/login oauth        # browser GitHub / LinuxDo / Passkey
-/login password     # username/password → create relay token
+/login                      # password → persist access token + auto-claim sk-
+/login access <token>       # paste Access Token from personal settings
+/login oauth                # browser login, then paste Access Token (not sk-)
+/console                    # full web console management
 ```
 
-Config: `~/.hlool-agent/config.json` (falls back to legacy `~/.cocacode/`).
+### Console
 
-Env: `HLOOL_API_KEY` / `HLOOL_BASE_URL` / `HLOOL_MODEL` / `HLOOL_API_TYPE`.
+`/console balance|models|groups|tokens|logs|topup|notice|pricing|aff|claim` plus token CRUD.
 
-Default base URL is `https://api.shuaiapi.com` with `apiType: chat` (Bearer auth).
+### Build
 
-### Auth model
-
-SHUAI runs NewAPI. Browser OAuth is for the console; relay calls use a single `Authorization: Bearer sk-…` token — same contract as the site’s “one-click fill” clients.
+```bash
+./gradlew jvmFatJar && java -jar build/libs/hlool-agent-*.jar -i
+```
 
 ### License
 

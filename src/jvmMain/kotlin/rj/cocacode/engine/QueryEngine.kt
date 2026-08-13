@@ -195,9 +195,12 @@ class QueryEngine {
         try {
             if (!ApiConfig.isConfigured) {
                 return QueryResponse.Error(
-                    "No API key configured. Run /login, or set HLOOL_API_KEY " +
-                        "or add apiKey to ~/.hlool-agent/config.json, then restart."
+                    "Not logged in. Run /login (access token) — relay sk- is claimed automatically."
                 )
+            }
+            val prepErr = rj.cocacode.services.oauth.ShuaiApiAuth.prepareForChat()
+            if (prepErr != null) {
+                return QueryResponse.Error(prepErr)
             }
 
             val userMessage = Message(

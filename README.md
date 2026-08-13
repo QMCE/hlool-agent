@@ -4,58 +4,44 @@ Hlool Agent — AI Coding Assistant for [SHUAI API](https://api.shuaiapi.com) | 
 
 [English](README.en.md) | [正體中文](README.hant.md)
 
-### 项目简介
+### 一键登录（Access Token）
 
-Hlool Agent 是面向 **帅 API（api.shuaiapi.com）** 的 AI 编程助手：用控制台里的 **一把 sk- Key**，即可调用与网页版相同的 OpenAI 兼容全功能模型面（对话 / 多模型 / 工具循环等）。
+**不接受手动粘贴 sk-**。凭证是控制台 **Access Token**；登录后自动申领并持久化名为 `Hlool Agent` 的 relay sk-。
 
-### 主要特性
+```text
+/login                      # 账号密码 → 持久化 access token + 自动申领 sk-
+/login access <token>       # 粘贴个人设置里的 Access Token
+/login oauth                # 浏览器登录后粘贴 Access Token（不是 sk-）
+/login refresh              # 重新申领 relay sk-
+/console                    # 网页管理能力（余额/令牌/模型/日志/充值…）
+```
 
-- **一键登录**：`/login` 支持粘贴 sk- Key、浏览器 OAuth（GitHub / LinuxDo / Passkey）、或账号密码自动建令牌
-- **多 Agent 系统**：自定义 Agent、子代理与 teammate 协作
-- **工具集**：`Bash` / `Read` / `Write` / `Edit` / `Glob` / `Grep` / `WebSearch`
-- **REPL**：交互模式、会话恢复、Vim 键位、MCP / LSP
+配置：`~/.hlool-agent/config.json`（`accessToken` + 自动写入的 `apiKey`）。
 
-### 快速开始
+环境变量：`HLOOL_ACCESS_TOKEN` / `HLOOL_USER_ID` / `HLOOL_BASE_URL`（亦兼容 `NEWAPI_*`）。
 
-#### 环境要求
+### 控制台命令
 
-- JDK 25+
-- Kotlin 2.3+
+| 命令 | 说明 |
+|------|------|
+| `/console balance` | 账户余额与配额 |
+| `/console models` | 可用模型 |
+| `/console groups` | 分组 |
+| `/console tokens` | 令牌列表（密钥脱敏） |
+| `/console create-token <name>` | 创建令牌 |
+| `/console switch-group <id> <g>` | 切换分组 |
+| `/console enable-token` / `disable-token` / `delete-token` | 启停删 |
+| `/console logs` | 调用日志 |
+| `/console topup` / `topup-history` | 充值信息 |
+| `/console notice` / `pricing` / `aff` | 公告 / 定价 / 邀请码 |
+| `/console claim` | 重新申领 Agent relay sk- |
 
-#### 构建与运行
+### 构建
 
 ```bash
 ./gradlew jvmFatJar
 java -jar build/libs/hlool-agent-*.jar -i
 ```
-
-进入交互后：
-
-```text
-/login                # 打开帅 API 登录页，粘贴 sk- Key
-/login sk-xxxx        # 直接写入并校验
-/login oauth          # 浏览器 GitHub / LinuxDo
-/login password       # 用户名密码 → 自动创建 relay token
-```
-
-配置文件默认在 `~/.hlool-agent/config.json`（兼容读取旧版 `~/.cocacode/`）。
-
-环境变量（优先）：`HLOOL_API_KEY` / `HLOOL_BASE_URL` / `HLOOL_MODEL` / `HLOOL_API_TYPE`。
-
-默认：
-
-```json
-{
-  "baseUrl": "https://api.shuaiapi.com",
-  "apiType": "chat",
-  "apiKey": "sk-…",
-  "model": "claude-sonnet-4-5-20250929"
-}
-```
-
-### 鉴权说明（SHUAI / NewAPI）
-
-帅 API 是 NewAPI 网关。网页端用 GitHub / LinuxDo / Passkey / 密码登录；真正调用模型走 **令牌（sk-）+ Bearer**，与 Cherry Studio / Lobe Chat 等「一键填入」客户端相同——**一把 Key 打通网页版可用的模型与协议面**。
 
 ### 许可证
 

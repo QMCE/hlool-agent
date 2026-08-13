@@ -238,7 +238,7 @@ class TerminalUI {
         print(Ansi.boldCyan("██║  ██║ ███████╗ ╚██████╔╝ ╚██████╔╝ ███████╗"))
         print(Ansi.boldCyan("╚═╝  ╚═╝ ╚══════╝  ╚═════╝   ╚═════╝  ╚══════╝"))
         print(Ansi.gray("  ${rj.cocacode.constants.Product.NAME} — ${Ansi.bold("v" + rj.cocacode.BuildKonfig.APP_VERSION)}"))
-        print(Ansi.gray("  SHUAI API · Type ${Ansi.brightCyan("/login")} for one-key setup, ${Ansi.brightCyan("/help")} for commands."))
+        print(Ansi.gray("  SHUAI API · ${Ansi.brightCyan("/login")} access token · ${Ansi.brightCyan("/console")} manage account"))
         print("")
     }
 

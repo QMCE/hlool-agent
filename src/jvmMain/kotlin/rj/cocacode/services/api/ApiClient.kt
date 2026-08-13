@@ -79,7 +79,7 @@ object ApiClient {
     private suspend fun postRaw(endpoint: String, requestBody: String): Result<String> {
         if (ApiConfig.apiKey.isBlank()) {
             return Result.failure(IllegalStateException(
-                "No API key configured. Run /login, set HLOOL_API_KEY, or add apiKey to ~/.hlool-agent/config.json"
+                "Not logged in. Run /login (access token). Relay sk- is auto-claimed."
             ))
         }
         return try {

@@ -15,7 +15,17 @@ data class Config(
     val model: String? = null,
     val baseUrl: String? = null,
     val apiUrl: String? = null,
+    /**
+     * Auto-claimed relay sk- key (never pasted by the user).
+     * Managed via [rj.cocacode.services.oauth.ShuaiApiAuth.ensureRelayToken].
+     */
     val apiKey: String? = null,
+    /** NewAPI / SHUAI management access token (the one-key credential). */
+    val accessToken: String? = null,
+    val userId: Int? = null,
+    val username: String? = null,
+    /** Id of the auto-claimed relay token in the console. */
+    val relayTokenId: Int? = null,
     /** "chat" (OpenAI-compatible /chat/completions) or "messages" (Anthropic). */
     val apiType: String? = null,
     val maxTokens: Int? = null,

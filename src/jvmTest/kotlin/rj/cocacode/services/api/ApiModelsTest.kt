@@ -22,7 +22,8 @@ class ApiModelsTest {
             messages = listOf(RequestBuilder.ApiMessage("user", "hi")),
             tools = listOf(ToolSpec("Read", "read files", mapOf("type" to "object"))),
             maxTokens = 100,
-            stream = false
+            stream = false,
+            apiType = ApiType.MESSAGES
         )
         assertEquals("claude-test", req["model"]?.jsonPrimitive?.contentOrNull)
         assertEquals("sys", req["system"]?.jsonPrimitive?.contentOrNull)

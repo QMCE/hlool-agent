@@ -5,12 +5,13 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import rj.cocacode.constants.Product
 import rj.cocacode.repl.Repl
 import rj.cocacode.commands.CommandRegistry
 
-class CocaCodeCLI : CliktCommand(
-    name = "cocacode",
-    help = "CocaCode - AI Coding Assistant",
+class HloolAgentCLI : CliktCommand(
+    name = Product.CLI_NAME,
+    help = "${Product.NAME} - AI Coding Assistant for SHUAI API",
     printHelpOnEmptyArgs = true
 ) {
     val version: Boolean by option("-v", "--version", help = "Show version").flag()
@@ -20,7 +21,7 @@ class CocaCodeCLI : CliktCommand(
 
     override fun run() {
         when {
-            version -> println("CocaCode v${rj.cocacode.BuildKonfig.APP_VERSION}")
+            version -> println("${Product.NAME} v${rj.cocacode.BuildKonfig.APP_VERSION}")
             interactive || prompt != null -> {
                 val promptValue = prompt
                 if (promptValue != null) {
@@ -30,12 +31,12 @@ class CocaCodeCLI : CliktCommand(
                 }
             }
             else -> {
-                println("CocaCode - AI Coding Assistant")
-                println("Usage: cocacode [command] [options]")
-                println("       cocacode -i           # Start interactive mode")
-                println("       cocacode --resume     # Resume the last session")
-                println("       cocacode -p 'Hi'      # Run a single prompt")
-                println("       cocacode --version")
+                println("${Product.NAME} - AI Coding Assistant for SHUAI API")
+                println("Usage: ${Product.CLI_NAME} [command] [options]")
+                println("       ${Product.CLI_NAME} -i           # Start interactive mode")
+                println("       ${Product.CLI_NAME} --resume     # Resume the last session")
+                println("       ${Product.CLI_NAME} -p 'Hi'      # Run a single prompt")
+                println("       ${Product.CLI_NAME} --version")
             }
         }
     }
@@ -101,5 +102,5 @@ class CocaCodeCLI : CliktCommand(
 
 fun main(args: Array<String>) {
     rj.cocacode.config.ApiConfig.reload()
-    CocaCodeCLI().main(args)
+    HloolAgentCLI().main(args)
 }

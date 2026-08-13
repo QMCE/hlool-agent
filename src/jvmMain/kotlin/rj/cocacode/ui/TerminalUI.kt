@@ -15,7 +15,7 @@ import rj.cocacode.state.AppStateManager
 class TerminalUI {
     companion object {
         /** Prompt shown at the input line. */
-        val PROMPT: String get() = Ansi.boldCyan("cocacode") + Ansi.cyan(" ▸ ")
+        val PROMPT: String get() = Ansi.boldCyan(rj.cocacode.constants.Product.SHORT_NAME) + Ansi.cyan(" ▸ ")
     }
 
     private var terminal: Terminal? = null
@@ -231,14 +231,14 @@ class TerminalUI {
 
     fun printBanner() {
         print("")
-        print(Ansi.boldCyan(" ██████╗   ██████╗   ██████╗   █████╗    ██████╗   ██████╗  ██████═╗  ███████╗"))
-        print(Ansi.boldCyan("██╔════╝  ██╔═══██╗ ██╔════╝  ██╔══██╗  ██╔════╝  ██╔═══██╗ ██╔══██║  ██╔════╝"))
-        print(Ansi.boldCyan("██║       ██║   ██║ ██║       ███████║  ██║       ██║   ██║ ██║  ██║  █████╗  "))
-        print(Ansi.boldCyan("██║       ██║   ██║ ██║       ██╔══██║  ██║       ██║   ██║ ██║  ██║  ██╔══╝  "))
-        print(Ansi.boldCyan("╚██████╗  ╚██████╔╝ ╚██████╗  ██║  ██║  ╚██████╗  ╚██████╔╝ ██████╔╝  ███████╗"))
-        print(Ansi.boldCyan(" ╚═════╝   ╚═════╝   ╚═════╝  ╚═╝  ╚═╝   ╚═════╝   ╚═════╝  ╚═════╝   ╚══════╝"))
-        print(Ansi.gray("  AI Coding Assistant — ${Ansi.bold("v" + rj.cocacode.BuildKonfig.APP_VERSION)}"))
-        print(Ansi.gray("  Type ${Ansi.brightCyan("/help")} for commands, ${Ansi.brightCyan("!cmd")} for shell, or just ask."))
+        print(Ansi.boldCyan("██╗  ██╗ ██╗       ██████╗   ██████╗  ██╗"))
+        print(Ansi.boldCyan("██║  ██║ ██║      ██╔═══██╗ ██╔═══██╗ ██║"))
+        print(Ansi.boldCyan("███████║ ██║      ██║   ██║ ██║   ██║ ██║"))
+        print(Ansi.boldCyan("██╔══██║ ██║      ██║   ██║ ██║   ██║ ██║"))
+        print(Ansi.boldCyan("██║  ██║ ███████╗ ╚██████╔╝ ╚██████╔╝ ███████╗"))
+        print(Ansi.boldCyan("╚═╝  ╚═╝ ╚══════╝  ╚═════╝   ╚═════╝  ╚══════╝"))
+        print(Ansi.gray("  ${rj.cocacode.constants.Product.NAME} — ${Ansi.bold("v" + rj.cocacode.BuildKonfig.APP_VERSION)}"))
+        print(Ansi.gray("  SHUAI API · ${Ansi.brightCyan("/login")} access token · ${Ansi.brightCyan("/console")} manage account"))
         print("")
     }
 

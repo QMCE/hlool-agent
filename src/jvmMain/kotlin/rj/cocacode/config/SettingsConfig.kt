@@ -23,10 +23,10 @@ object SettingsConfig {
                 File(configDir, "settings.json").absolutePath
             }
             SettingsSource.PROJECT -> {
-                    File(projectDir, ".cocacode/settings.json").absolutePath
+                    File(projectDir, ".hlool-agent/settings.json").absolutePath
                 }
                 SettingsSource.LOCAL -> {
-                    File(projectDir, ".cocacode/settings.local.json").absolutePath
+                    File(projectDir, ".hlool-agent/settings.local.json").absolutePath
             }
             SettingsSource.FLAG -> null
             SettingsSource.POLICY -> {
@@ -37,9 +37,10 @@ object SettingsConfig {
     }
 
     private fun getUserConfigDir(): String {
-        return System.getenv("COCACODE_CONFIG_DIR")
+        return System.getenv("HLOOL_CONFIG_DIR")
+            ?: System.getenv("COCACODE_CONFIG_DIR")
             ?: System.getenv("CLAUDE_CONFIG_DIR")
-            ?: File(System.getProperty("user.home"), ".cocacode").absolutePath
+            ?: rj.cocacode.utils.AppPaths.configHome().absolutePath
     }
 
     fun loadSettingsForSource(source: SettingsSource, projectDir: String): JsonObject? {

@@ -6,7 +6,7 @@ plugins {
     id("com.codingfeline.buildkonfig") version "0.22.0"
 }
 
-group = "rj.cocacode"
+group = "rj.hlool"
 version = "0.5.1"
 
 // Generate a BuildKonfig object exposing project metadata at compile time
@@ -17,7 +17,7 @@ buildkonfig {
     exposeObjectWithName = "BuildKonfig"
     defaultConfigs {
         buildConfigField(FieldSpec.Type.STRING, "APP_VERSION", "${project.version}")
-        buildConfigField(FieldSpec.Type.STRING, "APP_NAME", "cocacode")
+        buildConfigField(FieldSpec.Type.STRING, "APP_NAME", "hlool-agent")
     }
 }
 
@@ -32,7 +32,7 @@ kotlin {
     mingwX64() {
         binaries {
             executable {
-                baseName = "cocacode"
+                baseName = "hlool-agent"
                 entryPoint("rj.cocacode.main")
             }
         }
@@ -90,7 +90,7 @@ kotlin {
 
 // Create a fat JAR with all dependencies bundled
 val jvmFatJar = tasks.register<Jar>("jvmFatJar") {
-    archiveFileName.set("cocacode-${version}.jar")
+    archiveFileName.set("hlool-agent-${version}.jar")
     dependsOn(tasks.named("jvmJar"))
     val jvmJarTask = tasks.named("jvmJar")
     from(jvmJarTask.map { zipTree(it.outputs.files.singleFile) })

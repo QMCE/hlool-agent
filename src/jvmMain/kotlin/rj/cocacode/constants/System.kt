@@ -1,8 +1,8 @@
 package rj.cocacode.constants
 
 object System {
-    const val CLI_SYSPROMPT_PREFIX = "You are CocaCode, an AI coding assistant."
-    const val CLI_SYSPROMPT_SDK_PREFIX = "You are CocaCode, running within the Agent SDK."
+    const val CLI_SYSPROMPT_PREFIX = "You are Hlool Agent, an AI coding assistant powered by SHUAI API."
+    const val CLI_SYSPROMPT_SDK_PREFIX = "You are Hlool Agent, running within the Agent SDK."
     
     const val DEFAULT_MAX_TOKENS = 4096
     const val DEFAULT_TEMPERATURE = 1.0
@@ -22,18 +22,22 @@ object System {
 }
 
 object ApiDefaults {
-    const val BASE_URL = "https://api.anthropic.com"
+    const val BASE_URL = Product.API_BASE_URL
     const val VERSION = "2023-06-01"
-    const val DEFAULT_MODEL = "claude-sonnet-4-20250514"
+    const val DEFAULT_MODEL = Product.DEFAULT_MODEL
     
     val SUPPORTED_MODELS = listOf(
-        "claude-opus-4-20250514",
-        "claude-sonnet-4-20250514",
-        "claude-haiku-20240307"
+        "claude-sonnet-4-5-20250929",
+        "claude-opus-4-8",
+        "gpt-5.6-sol",
+        "kimi-k3",
+        "deepseek-v4-pro",
+        "grok-4.5"
     )
     
     val FAST_MODELS = listOf(
-        "claude-haiku-20240307"
+        "claude-haiku-4-5",
+        "deepseek-v4-flash-0731"
     )
 }
 

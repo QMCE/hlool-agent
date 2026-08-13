@@ -29,10 +29,8 @@ object MemoryPathUtils {
         return getCocaCodeConfigHomeDir()
     }
 
-    fun getCocaCodeConfigHomeDir(): String {
-        val home = System.getProperty("user.home") ?: ""
-        return File(home, ".cocacode").absolutePath
-    }
+    fun getCocaCodeConfigHomeDir(): String =
+        rj.cocacode.utils.AppPaths.configHome().absolutePath
 
     private val _autoMemPath: String by lazy {
         val override = getAutoMemPathOverride()

@@ -7,7 +7,7 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 object SessionStorage {
-    private val sessionsDir = File(System.getProperty("user.home"), ".cocacode/sessions")
+    private val sessionsDir = rj.cocacode.utils.AppPaths.sessionsDir()
     private val sessionCache = ConcurrentHashMap<String, SessionData>()
     private val gson = Gson()
 

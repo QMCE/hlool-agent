@@ -1,5 +1,6 @@
 package rj.cocacode.config
 
+import rj.cocacode.constants.Product
 import rj.cocacode.utils.ConfigManager
 
 /**
@@ -17,22 +18,22 @@ enum class ApiType {
  * API configuration for external services.
  *
  * Loaded from, in priority order:
- *  1. Environment variables (COCA_API_KEY / COCA_BASE_URL / COCA_MODEL /
- *     COCA_MAX_TOKENS / COCA_API_TIMEOUT / COCA_API_TYPE)
- *  2. User config file `~/.cocacode/config.json` (fields: baseUrl, apiKey,
- *     model, apiType, maxTokens).
- *  3. Built-in defaults.
+ *  1. Environment variables (HLOOL_* preferred)
+ *  2. User config `~/.hlool-agent/config.json`
+ *  3. Built-in SHUAI defaults
  *
- * The interface is declared simply via [apiType] ("chat" vs "messages").
- * When unset it defaults by host: api.anthropic.com -> messages, else chat.
+ * Auth: prefer **access token** (management). Relay `apiKey` (sk-) is
+ * auto-claimed and persisted — users never paste sk- keys.
  */
 data class ApiConfig(
     val apiKey: String = "",
-    val baseUrl: String = "https://api.anthropic.com",
-    val model: String = "claude-sonnet-4-20250514",
+    val accessToken: String = "",
+    val userId: Int? = null,
+    val baseUrl: String = Product.API_BASE_URL,
+    val model: String = Product.DEFAULT_MODEL,
     val maxTokens: Int = 4096,
     val timeout: Long = 120000,
-    val apiType: ApiType = ApiType.MESSAGES,
+    val apiType: ApiType = ApiType.CHAT,
     /** Token budget for thinking; 0 disables. Defaults to enabled (16000). */
     val thinkingBudget: Int = 16000
 ) {
@@ -43,14 +44,19 @@ data class ApiConfig(
 
         val model: String get() = default.model
         val apiKey: String get() = default.apiKey
+        val accessToken: String get() = default.accessToken
+        val userId: Int? get() = default.userId
         val baseUrl: String get() = default.baseUrl
         val maxTokens: Int get() = default.maxTokens
         val timeout: Long get() = default.timeout
         val apiType: ApiType get() = default.apiType
         val thinkingBudget: Int get() = default.thinkingBudget
 
-        /** True when an API key has been configured (env var or config file). */
-        val isConfigured: Boolean get() = default.apiKey.isNotBlank()
+        /** Logged in when access token or (legacy) relay key is present. */
+        val isConfigured: Boolean
+            get() = default.accessToken.isNotBlank() || default.apiKey.isNotBlank()
+
+        val hasAccessToken: Boolean get() = default.accessToken.isNotBlank()
 
         /** Reload configuration. Env vars always win over the config file. */
         fun reload() {
@@ -60,46 +66,52 @@ data class ApiConfig(
                 null
             }
 
-            val baseUrl = env("COCA_BASE_URL")
+            val baseUrl = env("HLOOL_BASE_URL")
+                ?: env("COCA_BASE_URL")
                 ?: file?.baseUrl
                 ?: file?.apiUrl
-                ?: "https://api.anthropic.com"
+                ?: Product.API_BASE_URL
 
             default = ApiConfig(
-                apiKey = env("COCA_API_KEY")
-                    ?: env("ANTHROPIC_API_KEY")
+                apiKey = env("HLOOL_API_KEY")
+                    ?: env("COCA_API_KEY")
                     ?: file?.apiKey.orEmpty(),
+                accessToken = env("HLOOL_ACCESS_TOKEN")
+                    ?: env("NEWAPI_ACCESS_TOKEN")
+                    ?: file?.accessToken.orEmpty(),
+                userId = env("HLOOL_USER_ID")?.toIntOrNull()
+                    ?: env("NEWAPI_USER_ID")?.toIntOrNull()
+                    ?: file?.userId,
                 baseUrl = normalizeBaseUrl(baseUrl),
-                model = env("COCA_MODEL")
+                model = env("HLOOL_MODEL")
+                    ?: env("COCA_MODEL")
                     ?: file?.model
-                    ?: "claude-sonnet-4-20250514",
-                maxTokens = env("COCA_MAX_TOKENS")?.toIntOrNull()
+                    ?: Product.DEFAULT_MODEL,
+                maxTokens = env("HLOOL_MAX_TOKENS")?.toIntOrNull()
+                    ?: env("COCA_MAX_TOKENS")?.toIntOrNull()
                     ?: file?.maxTokens
                     ?: 4096,
-                timeout = env("COCA_API_TIMEOUT")?.toLongOrNull() ?: 120000L,
-                apiType = parseApiType(env("COCA_API_TYPE") ?: file?.apiType, baseUrl),
-                thinkingBudget = env("COCA_MAX_THINKING_TOKENS")?.toIntOrNull()
+                timeout = env("HLOOL_API_TIMEOUT")?.toLongOrNull()
+                    ?: env("COCA_API_TIMEOUT")?.toLongOrNull()
+                    ?: 120000L,
+                apiType = parseApiType(
+                    env("HLOOL_API_TYPE") ?: env("COCA_API_TYPE") ?: file?.apiType,
+                    baseUrl
+                ),
+                thinkingBudget = env("HLOOL_MAX_THINKING_TOKENS")?.toIntOrNull()
+                    ?: env("COCA_MAX_THINKING_TOKENS")?.toIntOrNull()
                     ?: env("MAX_THINKING_TOKENS")?.toIntOrNull()
                     ?: file?.maxThinkingTokens
                     ?: 16000
             )
         }
 
-        /**
-         * Declare the interface: "chat" / "openai" -> [ApiType.CHAT],
-         * "messages" / "anthropic" -> [ApiType.MESSAGES]. Unset/unknown falls
-         * back to the host default (anthropic -> messages, else chat).
-         */
         fun parseApiType(type: String?, baseUrl: String): ApiType = when (type?.trim()?.lowercase()) {
             "chat", "openai", "openai-compatible" -> ApiType.CHAT
             "messages", "anthropic" -> ApiType.MESSAGES
             else -> if (baseUrl.contains("api.anthropic.com")) ApiType.MESSAGES else ApiType.CHAT
         }
 
-        /**
-         * Strip a well-known API endpoint suffix so [baseUrl] is always the base,
-         * e.g. "https://host/zen/go/v1/chat/completions" -> "https://host/zen/go".
-         */
         private fun normalizeBaseUrl(url: String): String = url
             .trimEnd('/')
             .removeSuffix("/v1/chat/completions")

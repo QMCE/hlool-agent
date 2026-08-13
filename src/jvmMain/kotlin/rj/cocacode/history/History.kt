@@ -58,7 +58,7 @@ class History(private val maxEntries: Int = 1000) {
 }
 
 object HistoryStorage {
-    private val historyDir = File(System.getProperty("user.home"), ".cocacode/history")
+    private val historyDir = rj.cocacode.utils.AppPaths.historyDir()
     
     init {
         historyDir.mkdirs()

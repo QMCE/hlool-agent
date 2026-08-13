@@ -721,15 +721,71 @@ class ExitCommand : Command() {
 
 class ModelCommand : Command() {
     override val name = "model"
-    override val description = "Show or set the model"
+    override val description = "Interactive model picker (or /model <name>)"
     override suspend fun execute(args: List<String>) {
         val ui = UI.get()
-        val name = args.firstOrNull()
-        if (name.isNullOrBlank()) {
-            ui.printInfo("Current model: ${rj.cocacode.config.ApiConfig.model}")
+        val explicit = args.firstOrNull()?.trim().orEmpty()
+        if (explicit.isNotEmpty()) {
+            setModel(ui, explicit)
+            return
+        }
+
+        val current = rj.cocacode.config.ApiConfig.model
+        ui.printInfo("Current model: $current")
+        ui.print(rj.cocacode.ui.Ansi.dim("Loading model list…"))
+
+        val models = loadModelList()
+        if (models.isEmpty()) {
+            ui.printWarning("No models available. Set one with /model <name> or /login first.")
+            return
+        }
+
+        val terminal = ui.terminal()
+        val writer = ui.writer() ?: java.io.PrintWriter(System.out, true)
+        if (terminal == null) {
+            // Non-TTY fallback: print list
+            ui.print("")
+            models.take(40).forEachIndexed { i, m ->
+                val mark = if (m.equals(current, true)) " *" else ""
+                ui.print("  ${i + 1}. $m$mark")
+            }
             ui.print(rj.cocacode.ui.Ansi.dim("Usage: /model <name>"))
             return
         }
+
+        val picked = rj.cocacode.ui.ModelPicker.pick(terminal, writer, models, current)
+        if (picked == null) {
+            ui.printInfo("Cancelled")
+            return
+        }
+        setModel(ui, picked)
+    }
+
+    private suspend fun loadModelList(): List<String> {
+        val fromApi = try {
+            rj.cocacode.services.oauth.ShuaiApiAuth.listModels().getOrNull()
+        } catch (_: Exception) {
+            null
+        }
+        if (!fromApi.isNullOrEmpty()) return fromApi
+
+        // Fallback: public pricing catalog (no auth) + built-ins
+        val fromPricing = try {
+            val root = rj.cocacode.services.oauth.ShuaiApiAuth.pricingSummary().getOrNull()
+            val data = root?.getAsJsonArray("data")
+            data?.mapNotNull { el ->
+                val o = el.asJsonObject
+                o.get("model_name")?.asString ?: o.get("model")?.asString
+            }
+        } catch (_: Exception) {
+            null
+        }
+        val builtins = rj.cocacode.constants.ApiDefaults.SUPPORTED_MODELS
+        val current = listOfNotNull(rj.cocacode.config.ApiConfig.model.takeIf { it.isNotBlank() })
+        return (current + (fromPricing ?: emptyList()) + builtins).distinct()
+    }
+
+    private fun setModel(ui: rj.cocacode.ui.TerminalUI, name: String) {
         val config = rj.cocacode.utils.ConfigManager.getGlobalConfig()
         rj.cocacode.utils.ConfigManager.saveGlobalConfig(config.copy(model = name))
         rj.cocacode.config.ApiConfig.reload()

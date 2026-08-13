@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "model": "claude-sonnet-4-20250514",
-  "apiType": "messages",
-  "baseUrl": "https://api.anthropic.com",
-  "apiKey": "your-api-key-here",
+  "model": "claude-sonnet-4-5-20250929",
+  "apiType": "chat",
+  "baseUrl": "https://api.shuaiapi.com",
+  "apiKey": "sk-your-shuai-api-key",
   "maxTokens": 4096,
   "maxThinkingTokens": 16000,
   "theme": "auto",

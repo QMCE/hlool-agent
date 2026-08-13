@@ -195,8 +195,8 @@ class QueryEngine {
         try {
             if (!ApiConfig.isConfigured) {
                 return QueryResponse.Error(
-                    "No API key configured. Set COCA_API_KEY (or ANTHROPIC_API_KEY) " +
-                        "or add apiKey to ~/.cocacode/config.json, then restart."
+                    "No API key configured. Run /login, or set HLOOL_API_KEY " +
+                        "or add apiKey to ~/.hlool-agent/config.json, then restart."
                 )
             }
 
@@ -469,7 +469,7 @@ class QueryEngine {
     private fun dumpToolDebug(apiHistory: List<RequestBuilder.ApiMessage>, postTool: Boolean) {
         if (!postTool) return
         try {
-            val dir = java.io.File(System.getProperty("user.home"), ".cocacode")
+            val dir = rj.cocacode.utils.AppPaths.configHome()
             dir.mkdirs()
             val out = java.io.File(dir, "last-tool-followup.json")
             val body = RequestBuilder.build(
@@ -545,7 +545,7 @@ class QueryEngine {
 
     private fun buildSystemPrompt(): String {
         return """
-You are CocaCode, an AI coding assistant running in the user's terminal. You are the LEADER of a team of AI agents.
+You are Hlool Agent, an AI coding assistant running in the user's terminal. You are the LEADER of a team of AI agents.
 
 # Your tools
 You can use tools to read, write, and edit files, run shell commands, and search code.

@@ -1,4 +1,4 @@
-rootProject.name = "cocacode"
+rootProject.name = "hlool-agent"
 
 pluginManagement {
     repositories {

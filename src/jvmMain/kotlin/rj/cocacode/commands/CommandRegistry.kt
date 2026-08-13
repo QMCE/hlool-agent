@@ -15,6 +15,7 @@ object CommandRegistry {
     
     fun init() {
         register(HelpCommand())
+        register(LoginCommand())
         register(SettingsCommand())
         register(ToolsCommand())
         register(ClearCommand())
@@ -76,6 +77,165 @@ class HelpCommand : Command() {
     }
 }
 
+class LoginCommand : Command() {
+    override val name = "login"
+    override val description = "One-key SHUAI API login (sk-… unlocks full web models)"
+    override suspend fun execute(args: List<String>) {
+        val ui = UI.get()
+        val auth = rj.cocacode.services.oauth.ShuaiApiAuth
+        val base = rj.cocacode.constants.Product.API_BASE_URL
+        val first = args.firstOrNull()?.trim().orEmpty()
+
+        when {
+            first.equals("status", ignoreCase = true) -> {
+                val status = auth.fetchStatus(base)
+                if (status == null) {
+                    ui.printError("Could not reach $base/api/status")
+                    return
+                }
+                ui.print("")
+                ui.print(rj.cocacode.ui.Ansi.bold(status.systemName))
+                ui.print("  server:   ${status.serverAddress}")
+                ui.print("  github:   ${status.githubOAuth}")
+                ui.print("  linuxdo:  ${status.linuxdoOAuth}")
+                ui.print("  password: ${status.passwordLogin}")
+                ui.print("  passkey:  ${status.passkeyLogin}")
+                ui.print("")
+                val configured = rj.cocacode.config.ApiConfig.isConfigured
+                ui.print("  local key: ${if (configured) "set" else "not set"}")
+                ui.print("  baseUrl:   ${rj.cocacode.config.ApiConfig.baseUrl}")
+                ui.print("")
+            }
+            first.equals("oauth", ignoreCase = true) || first.equals("browser", ignoreCase = true) -> {
+                browserLogin(ui, auth, base)
+            }
+            first.equals("password", ignoreCase = true) || first.equals("user", ignoreCase = true) -> {
+                passwordLogin(ui, auth, base, args.drop(1))
+            }
+            first.startsWith("sk-") || (first.length > 20 && !first.contains(' ')) -> {
+                saveKey(ui, auth, base, first)
+            }
+            first.isEmpty() -> {
+                ui.print("")
+                ui.print(rj.cocacode.ui.Ansi.bold("Hlool Agent · SHUAI API login"))
+                ui.print(rj.cocacode.ui.Ansi.gray("─".repeat(44)))
+                ui.print("One console API key unlocks the same models/chat surface as the web app.")
+                ui.print("")
+                ui.print("  ${rj.cocacode.ui.Ansi.brightCyan("/login sk-…")}         Paste a key from the console")
+                ui.print("  ${rj.cocacode.ui.Ansi.brightCyan("/login oauth")}        Open browser (GitHub / LinuxDo / Passkey)")
+                ui.print("  ${rj.cocacode.ui.Ansi.brightCyan("/login password")}     Username + password → auto-create sk key")
+                ui.print("  ${rj.cocacode.ui.Ansi.brightCyan("/login status")}       Show gateway auth options")
+                ui.print("")
+                ui.print(rj.cocacode.ui.Ansi.dim("Token page: ${rj.cocacode.constants.Product.TOKEN_CONSOLE_URL}"))
+                ui.print("")
+                // Default interactive path: open browser, then prompt for key.
+                browserLogin(ui, auth, base)
+            }
+            else -> {
+                ui.printError("Unknown /login argument. Try /login, /login sk-…, /login oauth, or /login password")
+            }
+        }
+    }
+
+    private suspend fun browserLogin(
+        ui: rj.cocacode.ui.TerminalUI,
+        auth: rj.cocacode.services.oauth.ShuaiApiAuth,
+        base: String
+    ) {
+        val status = auth.fetchStatus(base)
+        if (status != null) {
+            val methods = buildList {
+                if (status.githubOAuth) add("GitHub")
+                if (status.linuxdoOAuth) add("LinuxDo")
+                if (status.passkeyLogin) add("Passkey")
+                if (status.passwordLogin) add("password")
+            }
+            ui.printInfo("Gateway auth: ${methods.joinToString(" · ").ifEmpty { "console login" }}")
+        }
+        val opened = auth.openBrowserAuth(base)
+        if (opened) {
+            ui.printInfo("Opened browser → login, then copy an API token from the console.")
+        } else {
+            ui.printWarning("Could not open browser. Visit:")
+            ui.print("  ${rj.cocacode.constants.Product.LOGIN_URL}")
+            ui.print("  ${rj.cocacode.constants.Product.TOKEN_CONSOLE_URL}")
+        }
+        ui.print(rj.cocacode.ui.Ansi.dim("Paste the sk- key below (or run /login sk-… later)."))
+        val key = ui.readLine("API key ▸ ", "")?.trim().orEmpty()
+        if (key.isEmpty()) {
+            ui.printInfo("Cancelled — run /login sk-… when you have a key")
+            return
+        }
+        saveKey(ui, auth, base, key)
+    }
+
+    private suspend fun passwordLogin(
+        ui: rj.cocacode.ui.TerminalUI,
+        auth: rj.cocacode.services.oauth.ShuaiApiAuth,
+        base: String,
+        rest: List<String>
+    ) {
+        val username = rest.getOrNull(0)
+            ?: ui.readLine("Username ▸ ", "")?.trim().orEmpty()
+        if (username.isEmpty()) {
+            ui.printError("Username required")
+            return
+        }
+        val password = rest.getOrNull(1)
+            ?: ui.readLine("Password ▸ ", "")?.trim().orEmpty()
+        if (password.isEmpty()) {
+            ui.printError("Password required")
+            return
+        }
+        ui.printInfo("Signing in…")
+        val login = auth.passwordLogin(username, password, base)
+        val session = login.getOrElse {
+            ui.printError(it.message ?: "Login failed")
+            return
+        }
+        ui.printInfo("Creating Hlool Agent relay token…")
+        val token = auth.createRelayToken(session.accessToken, base).getOrElse {
+            ui.printError(it.message ?: "Token create failed")
+            ui.print(rj.cocacode.ui.Ansi.dim("Fallback: open ${rj.cocacode.constants.Product.TOKEN_CONSOLE_URL} and /login sk-…"))
+            return
+        }
+        saveKey(ui, auth, base, token.key)
+    }
+
+    private suspend fun saveKey(
+        ui: rj.cocacode.ui.TerminalUI,
+        auth: rj.cocacode.services.oauth.ShuaiApiAuth,
+        base: String,
+        rawKey: String
+    ) {
+        val key = auth.normalizeKey(rawKey) ?: run {
+            ui.printError("Empty API key")
+            return
+        }
+        ui.printInfo("Validating against $base/v1/models …")
+        val err = auth.validateApiKey(key, base)
+        if (err != null) {
+            ui.printError(err)
+            return
+        }
+        val prev = rj.cocacode.utils.ConfigManager.getGlobalConfig()
+        val next = prev.copy(
+            apiKey = key,
+            baseUrl = base,
+            apiUrl = base,
+            apiType = "chat",
+            model = prev.model ?: rj.cocacode.constants.Product.DEFAULT_MODEL
+        )
+        rj.cocacode.utils.ConfigManager.saveGlobalConfig(next)
+        rj.cocacode.config.ApiConfig.reload()
+        if (next.model != null) {
+            rj.cocacode.state.AppStateManager.setModel(next.model)
+        }
+        ui.printSuccess("Logged in — one key ready for full SHUAI web models")
+        ui.print(rj.cocacode.ui.Ansi.dim("Saved to ~/.hlool-agent/config.json · model ${rj.cocacode.config.ApiConfig.model}"))
+    }
+}
+
 class SettingsCommand : Command() {
     override val name = "settings"
     override val description = "Manage settings (set/get/list)"
@@ -89,7 +249,8 @@ class SettingsCommand : Command() {
                 ui.print("Current settings:")
                 ui.print("")
                 ui.print("  model:       ${config.model ?: "(not set)"}")
-                ui.print("  apiUrl:      ${config.apiUrl ?: "(not set)"}")
+                ui.print("  baseUrl:     ${config.baseUrl ?: config.apiUrl ?: "(not set)"}")
+                ui.print("  apiType:     ${config.apiType ?: "(auto)"}")
                 ui.print("  apiKey:      ${if (config.apiKey.isNullOrEmpty()) "(not set)" else "********"}")
                 ui.print("  theme:       ${config.theme}")
                 ui.print("  fastMode:    ${config.fastMode}")
@@ -103,7 +264,8 @@ class SettingsCommand : Command() {
                 }
                 val value = when (key) {
                     "model" -> config.model
-                    "apiUrl" -> config.apiUrl
+                    "apiUrl", "baseUrl" -> config.baseUrl ?: config.apiUrl
+                    "apiType" -> config.apiType
                     "apiKey" -> if (config.apiKey.isNullOrEmpty()) null else "********"
                     "theme" -> config.theme
                     "fastMode" -> config.fastMode.toString()
@@ -127,7 +289,8 @@ class SettingsCommand : Command() {
                         rj.cocacode.state.AppStateManager.setModel(value)
                         config.copy(model = value)
                     }
-                    "apiUrl" -> config.copy(apiUrl = value)
+                    "apiUrl", "baseUrl" -> config.copy(apiUrl = value, baseUrl = value)
+                    "apiType" -> config.copy(apiType = value)
                     "apiKey" -> config.copy(apiKey = value)
                     "theme" -> config.copy(theme = value)
                     "fastMode" -> config.copy(fastMode = value.toBoolean())
@@ -147,7 +310,8 @@ class SettingsCommand : Command() {
                 ui.print("  /settings get <key>      - Get a setting value")
                 ui.print("  /settings set <key> <value> - Set a setting value")
                 ui.print("")
-                ui.print("Available keys: model, apiUrl, apiKey, theme, fastMode")
+                ui.print("Available keys: model, baseUrl, apiType, apiKey, theme, fastMode")
+                ui.print(rj.cocacode.ui.Ansi.dim("Tip: /login configures SHUAI API with one key"))
                 ui.print("")
             }
         }

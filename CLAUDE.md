@@ -1,1 +1,1 @@
-/home/rj/cocacode/COCACODE.md
+COCACODE.md

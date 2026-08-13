@@ -7,6 +7,7 @@ import rj.cocacode.config.SettingsConfig
 import rj.cocacode.config.SettingsSource
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+// AppPaths resolves ~/.hlool-agent (with legacy ~/.cocacode fallback)
 
 @Serializable
 data class Config(
@@ -35,7 +36,7 @@ object ConfigManager {
     fun getGlobalConfig(): Config {
         globalConfig?.let { return it }
         
-        val configFile = getConfigFile()
+        val configFile = AppPaths.resolveConfigFileForRead()
         return if (configFile.exists()) {
             loadConfig(configFile) ?: Config().also { globalConfig = it }
         } else {
@@ -43,12 +44,7 @@ object ConfigManager {
         }
     }
     
-    private fun getConfigFile(): File {
-        val configDir: String = System.getenv("COCACODE_CONFIG_DIR") 
-            ?: System.getenv("CLAUDE_CONFIG_DIR")
-            ?: File(System.getProperty("user.home"), ".cocacode").absolutePath
-        return File(configDir, "config.json")
-    }
+    private fun getConfigFile(): File = AppPaths.configFile()
     
     private fun loadConfig(file: File): Config? {
         return try {
@@ -67,7 +63,13 @@ object ConfigManager {
     
     fun getProjectConfig(projectDir: String): Config {
         return cache.getOrPut(projectDir) {
-            val configFile = File(projectDir, ".cocacode.json")
+            val modern = File(projectDir, ".hlool-agent.json")
+            val legacy = File(projectDir, ".cocacode.json")
+            val configFile = when {
+                modern.exists() -> modern
+                legacy.exists() -> legacy
+                else -> modern
+            }
             if (configFile.exists()) loadConfig(configFile) ?: Config() else Config()
         }
     }

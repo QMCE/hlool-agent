@@ -79,7 +79,7 @@ object ApiClient {
     private suspend fun postRaw(endpoint: String, requestBody: String): Result<String> {
         if (ApiConfig.apiKey.isBlank()) {
             return Result.failure(IllegalStateException(
-                "No API key configured. Set COCA_API_KEY or add apiKey to ~/.cocacode/config.json"
+                "No API key configured. Run /login, set HLOOL_API_KEY, or add apiKey to ~/.hlool-agent/config.json"
             ))
         }
         return try {
@@ -300,5 +300,7 @@ object ApiClient {
  * Simple Http client wrapper used by OAuthService etc.
  */
 object HttpClient {
-    val client = io.ktor.client.HttpClient()
+    val client = io.ktor.client.HttpClient(io.ktor.client.engine.cio.CIO) {
+        expectSuccess = false
+    }
 }
